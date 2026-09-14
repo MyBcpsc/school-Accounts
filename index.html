@@ -143,8 +143,8 @@
   var MONTHS=['','জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
 
   /* ====== ⚙️ কনফিগ — এই দুই কোটেশনের ভিতরে Supabase-এর তথ্য বসান (খালি রাখলে শুধু এই ব্রাউজারে সেভ হবে) ====== */
-  var SUPABASE_URL = "https://nrenfzzxckpdgpnoyeel.supabase.co/rest/v1/";        // ← এখানে Project URL বসান, যেমন: https://abcd1234.supabase.co
-  var SUPABASE_ANON_KEY = "sb_publishable_KwFyVE3gh9v43wyQG-gIfg_2jgE2xiw";   // ← এখানে anon public key বসান
+  var SUPABASE_URL = "";        // ← এখানে Project URL বসান, যেমন: https://abcd1234.supabase.co
+  var SUPABASE_ANON_KEY = "";   // ← এখানে anon public key বসান
   /* ================================================================================================ */
 
   var LS='bcpsc-voucher-app';
@@ -153,13 +153,23 @@
   try{ if(SUPABASE_URL && SUPABASE_URL.indexOf('http')===0 && SUPABASE_ANON_KEY && window.supabase){ sb=window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); useCloud=true; } }catch(e){}
   function normalize(){ if(!state||typeof state!=='object') state={}; if(!Array.isArray(state.vouchers)) state.vouchers=[]; if(!Array.isArray(state.bill)) state.bill=[]; }
   var saveT;
-  function cloudSave(){ if(!useCloud) return; sb.from('app_state').upsert({id:'main', data:state, updated_at:new Date().toISOString()}).then(function(r){ if(r && r.error) toast('⚠ ক্লাউড সেভ হয়নি'); }); }
-  function save(){ normalize(); try{localStorage.setItem(LS, JSON.stringify(state));}catch(e){} if(useCloud){ clearTimeout(saveT); saveT=setTimeout(cloudSave, 600); } }
+  function setStatus(html){ var hb=document.querySelector('.hintbar'); if(hb) hb.innerHTML=html; }
+  function localGet(){ try{var s=localStorage.getItem(LS); if(s){var p=JSON.parse(s); if(p&&typeof p==='object') state=p;}}catch(e){} }
+  function cloudSave(){ if(!useCloud) return;
+    sb.from('app_state').upsert({id:'main', data:state, updated_at:new Date().toISOString()}).then(function(r){
+      if(r && r.error){ setStatus('⚠ <b>ক্লাউড সেভ ব্যর্থ:</b> '+esc(r.error.message||'')+' — Supabase-এ SQL চালিয়েছেন তো? (ডাটা আপাতত এই ব্রাউজারে আছে)'); }
+    }, function(){ setStatus('⚠ <b>ক্লাউডে পৌঁছানো যায়নি</b> — ডাটা এই ব্রাউজারে সেভ আছে।'); });
+  }
+  function save(){ normalize(); try{localStorage.setItem(LS, JSON.stringify(state));}catch(e){} if(useCloud){ clearTimeout(saveT); saveT=setTimeout(cloudSave, 500); } }
   function load(cb){
     if(useCloud){
-      sb.from('app_state').select('data').eq('id','main').maybeSingle().then(function(r){ if(r && r.data && r.data.data) state=r.data.data; normalize(); cb(); }, function(){ normalize(); cb(); });
+      sb.from('app_state').select('data').eq('id','main').maybeSingle().then(function(r){
+        if(r && r.error){ setStatus('⚠ <b>ক্লাউড সংযোগ সমস্যা:</b> '+esc(r.error.message||'')+' — SQL চালানো হয়েছে কিনা দেখুন। আপাতত এই ব্রাউজারের ডাটা দেখানো হচ্ছে।'); localGet(); normalize(); cb(); return; }
+        if(r && r.data && r.data.data){ state=r.data.data; } else { localGet(); }
+        normalize(); setStatus('☁ <b>ক্লাউড সেভ চালু</b> — ডাটা Supabase-এ জমা হচ্ছে, যেকোনো ডিভাইস থেকে খুলবে।'); cb();
+      }, function(){ setStatus('⚠ <b>ক্লাউডে পৌঁছানো যায়নি</b> — এই ব্রাউজারের ডাটা দেখানো হচ্ছে।'); localGet(); normalize(); cb(); });
     } else {
-      try{var s=localStorage.getItem(LS); if(s){var p=JSON.parse(s); if(p&&typeof p==='object') state=p;}}catch(e){} normalize(); cb();
+      localGet(); normalize(); setStatus('💾 এখন <b>এই ব্রাউজারে</b> সেভ হচ্ছে (রিফ্রেশেও থাকবে)। যেকোনো ডিভাইসে রাখতে index.html-এ Supabase তথ্য বসান।'); cb();
     }
   }
   function uid(){ return 'v'+Date.now()+Math.floor(Math.random()*10000); }
@@ -327,10 +337,6 @@
     if(!state.vouchers.length) state.vouchers.push(blankV());
     renderVouchers(); renderBill();
     if(state.bill.length) setStep(3);
-    var hb=document.querySelector('.hintbar');
-    if(hb) hb.innerHTML = useCloud
-      ? '☁ <b>ক্লাউড সেভ চালু</b> — ডাটা Supabase-এ জমা হচ্ছে, যেকোনো ডিভাইস থেকে খুলবে।'
-      : '💾 এখন <b>এই ব্রাউজারে</b> সেভ হচ্ছে। ক্লাউড সেভ চালু করতে index.html-এর উপরে Supabase তথ্য বসান।';
   });
 </script>
 </body>

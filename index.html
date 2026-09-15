@@ -79,14 +79,17 @@
     @page{margin:8mm;}
   }
   @media (max-width:720px){ .toprow{flex-direction:column;} .moneyrow .via{margin-left:0;} }
+  .step{cursor:pointer;}
+  .panel{display:none;}
+  .panel.on{display:block;}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="steps"><div class="step on"><b>১</b> আপলোড</div><div class="step" id="st2"><b>২</b> ভাউচার তৈরি</div><div class="step" id="st3"><b>৩</b> বিল রেজিস্টার</div></div>
+  <div class="steps"><div class="step on" id="st1" data-tab="1"><b>১</b> আপলোড</div><div class="step" id="st2" data-tab="2"><b>২</b> ভাউচার তৈরি</div><div class="step" id="st3" data-tab="3"><b>৩</b> বিল রেজিস্টার</div></div>
   <div class="hintbar muted" style="margin-bottom:12px;">ডাটা এই ব্রাউজারে <b>সেভ</b> থাকে (রিফ্রেশেও মুছবে না — আসল ব্রাউজারে খুললে)। SutonnyMJ ফন্ট ইনস্টল থাকলে সেই ফন্টে দেখাবে।</div>
 
-  <div class="card upcard">
+  <div class="card upcard panel on" id="p1">
     <h3>১ · ছবি / স্ক্রিনশট / PDF আপলোড</h3>
     <div class="body">
       <label class="drop"><div class="big">📤</div><div>এখানে ক্লিক করে আপলোড করুন (একাধিকও চলবে)</div><input type="file" id="fileIn" accept="image/*,application/pdf" multiple></label>
@@ -95,7 +98,7 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card panel" id="p2">
     <h3>২ · ভাউচার তৈরি</h3>
     <div class="body">
       <div class="modes">
@@ -110,14 +113,15 @@
         <button class="btn btn-r" id="clearAll">🗑 সব মুছুন</button>
         <span class="muted" id="vcount"></span>
       </div>
+      <div id="pendingBar" class="row-actions" hidden style="background:#eef6f2;border:1px solid #cfe3d9;border-radius:8px;padding:8px 12px"><b id="pendingCount"></b><button class="btn btn-p btn-s" id="addOne">➕ পরবর্তী ভাউচার তৈরি</button><button class="btn btn-o btn-s" id="addAll">সব তৈরি করুন</button><button class="btn btn-r btn-s" id="clearPending">বাতিল</button></div>
       <div id="vlist"></div>
     </div>
   </div>
 
-  <div class="card billcard">
+  <div class="card billcard panel" id="p3">
     <h3>৩ · মাসিক বিল রেজিস্টার</h3>
     <div class="body">
-      <div class="row-actions"><button class="btn btn-o" id="printBill">🖨 প্রিন্ট / PDF</button><span class="muted">প্রতিটি ঘর ক্লিক করে এডিট করুন — নিজে থেকে সেভ হয়।</span></div>
+      <div class="row-actions"><button class="btn btn-p" id="dlBillHtml">⬇ ডাউনলোড (HTML)</button><button class="btn btn-o" id="dlBillCsv">⬇ Excel (CSV)</button><button class="btn btn-o" id="printBill">🖨 প্রিন্ট / PDF</button><span class="muted">প্রতিটি ঘর ক্লিক করে এডিট করুন — নিজে থেকে সেভ হয়।</span></div>
       <div class="ttl"><h1>বগুড়া ক্যান্টনমেন্ট পাবলিক স্কুল ও কলেজ</h1><h2 id="billTitle">মাসিক বিল</h2></div>
       <div class="tbl-wrap">
         <table>
@@ -144,15 +148,15 @@
   var MONTHS=['','জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
 
   /* ====== ⚙️ কনফিগ — এই দুই কোটেশনের ভিতরে Supabase-এর তথ্য বসান (খালি রাখলে শুধু এই ব্রাউজারে সেভ হবে) ====== */
-  var SUPABASE_URL = "https://nrenfzzxckpdgpnoyeel.supabase.co/rest/v1/";        // ← এখানে Project URL বসান, যেমন: https://abcd1234.supabase.co
-  var SUPABASE_ANON_KEY = "sb_publishable_KwFyVE3gh9v43wyQG-gIfg_2jgE2xiw";   // ← এখানে anon public key বসান
+  var SUPABASE_URL = "";        // ← এখানে Project URL বসান, যেমন: https://abcd1234.supabase.co
+  var SUPABASE_ANON_KEY = "";   // ← এখানে anon public key বসান
   /* ================================================================================================ */
 
   var LS='bcpsc-voucher-app';
   var state={ vouchers:[], bill:[] };
   var sb=null, useCloud=false;
   try{ if(SUPABASE_URL && SUPABASE_URL.indexOf('http')===0 && SUPABASE_ANON_KEY && window.supabase){ sb=window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); useCloud=true; } }catch(e){}
-  function normalize(){ if(!state||typeof state!=='object') state={}; if(!Array.isArray(state.vouchers)) state.vouchers=[]; if(!Array.isArray(state.bill)) state.bill=[]; if(!Array.isArray(state.images)) state.images=[]; }
+  function normalize(){ if(!state||typeof state!=='object') state={}; if(!Array.isArray(state.vouchers)) state.vouchers=[]; if(!Array.isArray(state.bill)) state.bill=[]; if(!Array.isArray(state.images)) state.images=[]; if(!Array.isArray(state.pending)) state.pending=[]; }
   var saveT;
   function setStatus(html){ var hb=document.querySelector('.hintbar'); if(hb) hb.innerHTML=html; }
   function localGet(){ try{var s=localStorage.getItem(LS); if(s){var p=JSON.parse(s); if(p&&typeof p==='object') state=p;}}catch(e){} }
@@ -233,15 +237,22 @@
           var res=await fetch('/.netlify/functions/read-register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:sh.data, mime:sh.mime})});
           var j=await res.json();
           if(j.error){ st.innerHTML='⚠ '+esc(j.error); btn.disabled=false; return; }
-          (j.rows||[]).forEach(function(row){ addVoucherFromRow(row); added++; });
-          save(); renderVouchers();
+          (j.rows||[]).forEach(function(row){ state.pending.push(row); added++; });
+          save();
         }catch(e){ st.textContent='⚠ সমস্যা: '+e; btn.disabled=false; return; }
       }
-      setStep(2); btn.disabled=false;
-      st.textContent = added? ('✅ '+bn(added)+'টি ভাউচার তৈরি হয়েছে — মিলিয়ে সাবমিট করুন।') : 'কোনো সারি পাওয়া যায়নি।';
+      btn.disabled=false;
+      var mode=(document.querySelector('input[name=mode]:checked')||{}).value;
+      if(mode==='all'){ addAllPending(); st.textContent = added? ('✅ '+bn(added)+'টি ভাউচার তৈরি হয়েছে — মিলিয়ে সাবমিট করুন।') : 'কোনো সারি পাওয়া যায়নি।'; }
+      else { renderPending(); st.textContent = added? ('✅ AI '+bn(added)+'টি সারি পড়েছে — "পরবর্তী ভাউচার তৈরি" চেপে একটা একটা করে বানান।') : 'কোনো সারি পাওয়া যায়নি।'; }
+      showTab(2);
     })();
   });
-  function setStep(n){ document.getElementById('st2').classList.toggle('on', n>=2); document.getElementById('st3').classList.toggle('on', n>=3); }
+  function addOnePending(){ if(!state.pending.length) return; addVoucherFromRow(state.pending.shift()); save(); renderVouchers(); renderPending(); }
+  function addAllPending(){ while(state.pending.length){ addVoucherFromRow(state.pending.shift()); } save(); renderVouchers(); renderPending(); }
+  function renderPending(){ var bar=document.getElementById('pendingBar'); if(!bar) return; var n=state.pending.length; bar.hidden=!n; var c=document.getElementById('pendingCount'); if(c) c.textContent='AI-পড়া বাকি সারি: '+bn(n)+' — '; }
+  function setStep(n){}
+  function showTab(n){ n=String(n); ['1','2','3'].forEach(function(k){ var p=document.getElementById('p'+k); if(p) p.classList.toggle('on', k===n); var s=document.getElementById('st'+k); if(s) s.classList.toggle('on', k===n); }); }
 
   function ce(v,f){ return '<span class="edit" data-f="'+f+'" contenteditable="'+(v.locked?'false':'true')+'" spellcheck="false">'+esc(v[f])+'</span>'; }
   function voucherInner(v){
@@ -345,13 +356,13 @@
     var tr=e.target.closest('tr'); state.bill=state.bill.filter(function(x){return x.id!==tr.dataset.bid;}); save(); renderBill(); toast('🗑 সারি মুছে ফেলা হয়েছে');
   });
 
-  document.getElementById('addV').addEventListener('click', function(){ syncAll(); state.vouchers.push(blankV()); save(); renderVouchers(); setStep(2); toast('➕ নতুন ভাউচার যোগ হয়েছে'); });
+  document.getElementById('addV').addEventListener('click', function(){ syncAll(); state.vouchers.push(blankV()); save(); renderVouchers(); showTab(2); toast('➕ নতুন ভাউচার যোগ হয়েছে'); });
   document.getElementById('submitAll').addEventListener('click', function(){ syncAll(); state.vouchers.forEach(function(v){ if(!v.submitted) submitVoucher(v); }); toast('✅ সব ভাউচার সাবমিট হয়েছে'); });
   var clrArmed=false, clrT;
   document.getElementById('clearAll').addEventListener('click', function(){
     if(!clrArmed){ clrArmed=true; this.textContent='⚠ আবার চাপুন নিশ্চিত করতে'; var self=this; clrT=setTimeout(function(){clrArmed=false; self.textContent='🗑 সব মুছুন';},3000); return; }
     clearTimeout(clrT); clrArmed=false; this.textContent='🗑 সব মুছুন';
-    state={vouchers:[],bill:[],images:[]}; save(); renderVouchers(); renderBill(); renderPreviews(); toast('সব মুছে ফেলা হয়েছে');
+    state={vouchers:[],bill:[],images:[],pending:[]}; save(); renderVouchers(); renderBill(); renderPreviews(); renderPending(); toast('সব মুছে ফেলা হয়েছে');
   });
   document.querySelectorAll('input[name=mode]').forEach(function(r){ r.addEventListener('change', function(){ document.getElementById('submitAll').hidden=(this.value!=='all'); }); });
 
@@ -372,7 +383,7 @@
       v.demand='(অস্পষ্ট) / '+s[0]+' / '+s[7]; v.ddate='(অস্পষ্ট)'; v.page='(অস্পষ্ট)';
       state.vouchers.push(v);
     });
-    save(); renderVouchers(); setStep(2); toast('📄 নমুনা ৮টি ভাউচার যোগ হয়েছে');
+    save(); renderVouchers(); showTab(2); toast('📄 নমুনা ৮টি ভাউচার যোগ হয়েছে');
   });
 
   var VCSS="body{font-family:'SutonnyMJ','Hind Siliguri',sans-serif;padding:20px;} .head{display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:14px;} .logo{width:64px;height:64px;object-fit:contain;position:absolute;left:0;} .titles{text-align:center;} .titles h1{font-size:1.3rem;margin:0;font-weight:700;} .titles h2{font-size:1.05rem;margin:3px 0 0;font-weight:700;} .toprow{display:flex;justify-content:space-between;gap:20px;margin-bottom:8px;} .rb{display:flex;flex-direction:column;gap:6px;min-width:280px;} .rb .line,.vno,.payline,.moneyrow,.descline,.memo .r{display:flex;align-items:baseline;gap:6px;} .edit{border-bottom:1px solid #333;padding:0 5px;font-weight:600;} .rb .line .edit,.payline .edit,.descline .edit{flex:1;} .moneyrow{gap:8px;margin:8px 0;} .via{margin-left:auto;} .memo{margin-top:12px;display:flex;flex-direction:column;gap:6px;} .bottom{display:flex;justify-content:space-between;align-items:flex-end;margin-top:16px;} .signs{display:flex;gap:40px;} .sign .sline{border-top:1px solid #333;width:130px;margin-bottom:5px;} .sign span{font-weight:600;font-size:.85rem;} .lbl,.end{white-space:nowrap;}";
@@ -383,11 +394,30 @@
   document.getElementById('mPrint').addEventListener('click', function(){ if(curV) downloadVoucher(curV); });
   function downloadVoucher(v){ try{ var blob=new Blob([voucherDoc(v)],{type:'text/html'}); var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='voucher-'+toEn(v.bill||'1')+'.html'; document.body.appendChild(a); a.click(); a.remove(); toast('⬇ ভাউচার ডাউনলোড হচ্ছে'); }catch(e){ toast('ডাউনলোড ব্লকড — ব্রাউজারে খুলে চেষ্টা করুন'); } }
   document.getElementById('printBill').addEventListener('click', function(){ window.print(); });
+  document.getElementById('addOne').addEventListener('click', addOnePending);
+  document.getElementById('addAll').addEventListener('click', addAllPending);
+  document.getElementById('clearPending').addEventListener('click', function(){ state.pending=[]; save(); renderPending(); toast('AI-পড়া সারি বাতিল'); });
+  document.querySelectorAll('.steps .step').forEach(function(el){ el.addEventListener('click', function(){ showTab(this.getAttribute('data-tab')); }); });
+  function billHtmlDoc(){
+    var rows=state.bill.map(function(r){ return '<tr><td style="text-align:center">'+esc(r.serial)+'</td><td>'+esc(r.date)+'</td><td>'+esc(r.payee)+'</td><td>'+esc(r.babod)+'</td><td style="text-align:right">'+esc(r.taka)+'</td><td>'+esc(r.hi)+'</td><td>'+esc(r.toho)+'</td><td style="text-align:center">'+esc(r.khat)+'</td></tr>'; }).join('');
+    var title=document.getElementById('billTitle').textContent;
+    return '<!doctype html><html lang="bn"><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>body{font-family:\'Hind Siliguri\',sans-serif;padding:16px}h1{font-size:1.2rem;margin:0;text-align:center}h2{font-size:1rem;margin:3px 0 10px;text-align:center;font-weight:600}table{border-collapse:collapse;width:100%;font-size:.85rem}th,td{border:1px solid #222;padding:5px 7px}thead th{background:#eef2ed}</style></head><body><h1>বগুড়া ক্যান্টনমেন্ট পাবলিক স্কুল ও কলেজ</h1><h2>'+esc(title)+'</h2><table><thead><tr><th>ক্রমিক</th><th>তারিখ</th><th>প্রাপক</th><th>বাবদ</th><th>টাকা</th><th>হি: কর্ম:</th><th>তহবিল</th><th>খাত</th></tr></thead><tbody>'+rows+'</tbody></table></body></html>';
+  }
+  function dlFile(name, content, type){ try{ var b=new Blob([content],{type:type}); var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name; document.body.appendChild(a); a.click(); a.remove(); }catch(e){ toast('ডাউনলোড ব্লকড — ব্রাউজারে খুলুন'); } }
+  document.getElementById('dlBillHtml').addEventListener('click', function(){ if(!state.bill.length){toast('বিল খালি');return;} dlFile('monthly-bill.html', billHtmlDoc(), 'text/html'); toast('⬇ বিল ডাউনলোড হচ্ছে'); });
+  document.getElementById('dlBillCsv').addEventListener('click', function(){
+    if(!state.bill.length){toast('বিল খালি');return;}
+    var head=['ক্রমিক','তারিখ','প্রাপক','বাবদ','টাকা','হি: কর্ম:','তহবিল','খাত'];
+    function q(s){ s=String(s==null?'':s); return '"'+s.replace(/"/g,'""')+'"'; }
+    var lines=[head.map(q).join(',')];
+    state.bill.forEach(function(r){ lines.push([r.serial,r.date,r.payee,r.babod,r.taka,r.hi,r.toho,r.khat].map(q).join(',')); });
+    dlFile('monthly-bill.csv', '\ufeff'+lines.join('\r\n'), 'text/csv;charset=utf-8'); toast('⬇ CSV ডাউনলোড হচ্ছে');
+  });
 
   load(function(){
     if(!state.vouchers.length) state.vouchers.push(blankV());
-    renderVouchers(); renderBill(); renderPreviews();
-    if(state.bill.length) setStep(3);
+    renderVouchers(); renderBill(); renderPreviews(); renderPending();
+    showTab(1);
   });
 </script>
 </body>

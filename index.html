@@ -91,6 +91,7 @@
     <div class="body">
       <label class="drop"><div class="big">📤</div><div>এখানে ক্লিক করে আপলোড করুন (একাধিকও চলবে)</div><input type="file" id="fileIn" accept="image/*,application/pdf" multiple></label>
       <div class="previews" id="previews"></div>
+      <div class="row-actions" style="margin-top:12px"><button class="btn btn-p" id="aiRead" hidden>🤖 AI দিয়ে পড়ে ভাউচার বানাও</button><span class="muted" id="aiStatus"></span></div>
     </div>
   </div>
 
@@ -143,15 +144,15 @@
   var MONTHS=['','জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
 
   /* ====== ⚙️ কনফিগ — এই দুই কোটেশনের ভিতরে Supabase-এর তথ্য বসান (খালি রাখলে শুধু এই ব্রাউজারে সেভ হবে) ====== */
-  var SUPABASE_URL = "https://nrenfzzxckpdgpnoyeel.supabase.co/rest/v1/";        // ← এখানে Project URL বসান, যেমন: https://abcd1234.supabase.co
-  var SUPABASE_ANON_KEY = "sb_publishable_KwFyVE3gh9v43wyQG-gIfg_2jgE2xiw";   // ← এখানে anon public key বসান
+  var SUPABASE_URL = "";        // ← এখানে Project URL বসান, যেমন: https://abcd1234.supabase.co
+  var SUPABASE_ANON_KEY = "";   // ← এখানে anon public key বসান
   /* ================================================================================================ */
 
   var LS='bcpsc-voucher-app';
   var state={ vouchers:[], bill:[] };
   var sb=null, useCloud=false;
   try{ if(SUPABASE_URL && SUPABASE_URL.indexOf('http')===0 && SUPABASE_ANON_KEY && window.supabase){ sb=window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); useCloud=true; } }catch(e){}
-  function normalize(){ if(!state||typeof state!=='object') state={}; if(!Array.isArray(state.vouchers)) state.vouchers=[]; if(!Array.isArray(state.bill)) state.bill=[]; }
+  function normalize(){ if(!state||typeof state!=='object') state={}; if(!Array.isArray(state.vouchers)) state.vouchers=[]; if(!Array.isArray(state.bill)) state.bill=[]; if(!Array.isArray(state.images)) state.images=[]; }
   var saveT;
   function setStatus(html){ var hb=document.querySelector('.hintbar'); if(hb) hb.innerHTML=html; }
   function localGet(){ try{var s=localStorage.getItem(LS); if(s){var p=JSON.parse(s); if(p&&typeof p==='object') state=p;}}catch(e){} }
@@ -183,12 +184,62 @@
   function blankV(){ return {id:uid(), fund:'', bill:nextBill(), cheque:nextCheque(), date:'', payee:'', taka:'', words:'', babod:'', demand:'', ddate:'', page:'', submitted:false, locked:false}; }
 
   var previews=document.getElementById('previews');
+  function renderPreviews(){
+    previews.innerHTML='';
+    (state.images||[]).forEach(function(im, idx){
+      var cap=document.createElement('div'); cap.style.cssText='font-size:.78rem;color:#777;text-align:center;margin:6px 0 2px;display:flex;justify-content:space-between;align-items:center';
+      var nm=document.createElement('span'); nm.textContent=im.name||('ছবি '+(idx+1)); cap.appendChild(nm);
+      var del=document.createElement('button'); del.textContent='✕'; del.className='delrow'; del.onclick=function(){ state.images.splice(idx,1); save(); renderPreviews(); };
+      cap.appendChild(del); previews.appendChild(cap);
+      if((im.type||'').indexOf('pdf')>=0){ var em=document.createElement('embed'); em.src=im.data; em.type='application/pdf'; previews.appendChild(em); }
+      else { var img=document.createElement('img'); img.src=im.data; previews.appendChild(img); }
+    });
+    var ab=document.getElementById('aiRead'); if(ab) ab.hidden=!(state.images&&state.images.length);
+  }
   document.getElementById('fileIn').addEventListener('change', function(e){
-    previews.innerHTML=''; var fs=e.target.files;
-    for(var i=0;i<fs.length;i++){ var f=fs[i], u=URL.createObjectURL(f);
-      if(f.type.indexOf('image/')===0){var im=document.createElement('img'); im.src=u; previews.appendChild(im);}
-      else if(f.type==='application/pdf'){var em=document.createElement('embed'); em.src=u; em.type='application/pdf'; previews.appendChild(em);} }
-    setStep(2);
+    var fs=e.target.files; if(!fs.length) return;
+    var count=fs.length, done=0;
+    for(var i=0;i<fs.length;i++){ (function(f){
+      var rd=new FileReader();
+      rd.onload=function(){ state.images.push({name:f.name, type:f.type, data:rd.result}); done++; if(done===count){ try{save();}catch(e){} renderPreviews(); } };
+      rd.readAsDataURL(f);
+    })(fs[i]); }
+    e.target.value=''; setStep(2);
+  });
+
+  // ===== AI দিয়ে ছবি পড়ে ভাউচার তৈরি =====
+  function shrinkP(im){ return new Promise(function(res){
+    if((im.type||'').indexOf('image/')!==0){ res({data:im.data, mime:im.type||'application/pdf'}); return; }
+    var img=new Image();
+    img.onload=function(){ var max=2000,w=img.width,h=img.height; if(w>max||h>max){var s=Math.min(max/w,max/h); w=Math.round(w*s); h=Math.round(h*s);} var c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); res({data:c.toDataURL('image/jpeg',0.9), mime:'image/jpeg'}); };
+    img.onerror=function(){ res({data:im.data, mime:im.type||'image/jpeg'}); };
+    img.src=im.data;
+  }); }
+  function addVoucherFromRow(r){
+    var v=blankV();
+    v.fund=r.fund||''; if(r.cheque) v.cheque=String(r.cheque); v.date=r.date||''; v.payee=r.payee||''; v.taka=r.taka||''; v.words=r.words||'';
+    v.babod=r.babod||''; v.demand=(r.demandNo||'')+' / '+(r.fund||'')+' / '+(r.khat||''); v.ddate=r.demandDate||''; v.page=r.page||'';
+    state.vouchers.push(v);
+  }
+  document.getElementById('aiRead').addEventListener('click', function(){
+    if(!state.images.length) return;
+    var btn=this, st=document.getElementById('aiStatus'); btn.disabled=true;
+    (async function(){
+      var added=0;
+      for(var i=0;i<state.images.length;i++){
+        st.textContent='🤖 ছবি '+bn(i+1)+'/'+bn(state.images.length)+' পড়া হচ্ছে...';
+        try{
+          var sh=await shrinkP(state.images[i]);
+          var res=await fetch('/.netlify/functions/read-register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:sh.data, mime:sh.mime})});
+          var j=await res.json();
+          if(j.error){ st.innerHTML='⚠ '+esc(j.error); btn.disabled=false; return; }
+          (j.rows||[]).forEach(function(row){ addVoucherFromRow(row); added++; });
+          save(); renderVouchers();
+        }catch(e){ st.textContent='⚠ সমস্যা: '+e; btn.disabled=false; return; }
+      }
+      setStep(2); btn.disabled=false;
+      st.textContent = added? ('✅ '+bn(added)+'টি ভাউচার তৈরি হয়েছে — মিলিয়ে সাবমিট করুন।') : 'কোনো সারি পাওয়া যায়নি।';
+    })();
   });
   function setStep(n){ document.getElementById('st2').classList.toggle('on', n>=2); document.getElementById('st3').classList.toggle('on', n>=3); }
 
@@ -300,7 +351,7 @@
   document.getElementById('clearAll').addEventListener('click', function(){
     if(!clrArmed){ clrArmed=true; this.textContent='⚠ আবার চাপুন নিশ্চিত করতে'; var self=this; clrT=setTimeout(function(){clrArmed=false; self.textContent='🗑 সব মুছুন';},3000); return; }
     clearTimeout(clrT); clrArmed=false; this.textContent='🗑 সব মুছুন';
-    state={vouchers:[],bill:[]}; save(); renderVouchers(); renderBill(); toast('সব মুছে ফেলা হয়েছে');
+    state={vouchers:[],bill:[],images:[]}; save(); renderVouchers(); renderBill(); renderPreviews(); toast('সব মুছে ফেলা হয়েছে');
   });
   document.querySelectorAll('input[name=mode]').forEach(function(r){ r.addEventListener('change', function(){ document.getElementById('submitAll').hidden=(this.value!=='all'); }); });
 
@@ -335,7 +386,7 @@
 
   load(function(){
     if(!state.vouchers.length) state.vouchers.push(blankV());
-    renderVouchers(); renderBill();
+    renderVouchers(); renderBill(); renderPreviews();
     if(state.bill.length) setStep(3);
   });
 </script>

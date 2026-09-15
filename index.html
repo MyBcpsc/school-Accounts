@@ -82,11 +82,46 @@
   .step{cursor:pointer;}
   .panel{display:none;}
   .panel.on{display:block;}
+  /* রেজিস্টার সমূহ (ট্যাব ৪) */
+  .subtabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+  .subtab{cursor:pointer;padding:6px 12px;border:1px solid #cfd6cf;border-radius:20px;background:#fff;font-size:.85rem;font-weight:600;color:#2f5140;}
+  .subtab .cnt{opacity:.7;font-weight:500;}
+  .subtab.on{background:#1e5c4f;color:#fff;border-color:#1e5c4f;}
+  .subtab.miss{color:#8a5a12;border-color:#e0c38a;background:#fdf6e9;}
+  .subtab.miss.on{background:#8a5a12;color:#fff;border-color:#8a5a12;}
+  .regbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;}
+  #regBody .rhead{text-align:center;line-height:1.35;}
+  #regBody .rhead .rh1{font-weight:700;}
+  #regBody .rmeta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-weight:600;margin:6px 2px;}
+  #regBody .rmeta .rfund span{color:#1e5c4f;text-decoration:underline;}
+  .regsheet{overflow-x:auto;}
+  .rtable{border-collapse:collapse;width:100%;min-width:1000px;font-size:.84rem;}
+  .rtable th,.rtable td{border:1px solid #333;padding:2px 4px;text-align:center;vertical-align:middle;}
+  .rtable thead th{background:#eef3ef;font-weight:600;line-height:1.25;}
+  .rtable .grp{background:#e4ece6;font-weight:700;}
+  .rtable .colno td{font-size:.76rem;color:#556;background:#fafbfa;}
+  .rtable td.d{text-align:right;min-width:140px;}
+  .rtable td.m{text-align:right;font-variant-numeric:tabular-nums;min-width:64px;}
+  .rtable td.c{background:#f2f9f5;text-align:right;font-variant-numeric:tabular-nums;}
+  .rtable td[contenteditable]:focus{outline:2px solid #1e5c4f;outline-offset:-2px;background:#fffdf3;}
+  .rtable tr.exp td{background:#fffdf3;}
+  .rtable tr.exp td.c{background:#eef7f1;}
+  .rtable .totr td{font-weight:700;background:#eef3ef;}
+  .rtable .act2{white-space:nowrap;}
+  .rtable .rdel{cursor:pointer;color:#a33;font-weight:700;font-size:.75rem;border:1px solid #e2b6b6;border-radius:6px;padding:1px 5px;margin:1px;display:inline-block;background:#fff;}
+  .rboxes{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;}
+  .rbox{flex:1;min-width:280px;}
+  .rbox .cap{font-weight:700;text-align:center;background:#eef3ef;border:1px solid #333;border-bottom:none;padding:3px;}
+  .rbox table{border-collapse:collapse;width:100%;font-size:.82rem;}
+  .rbox th,.rbox td{border:1px solid #333;padding:3px 5px;}
+  .rsign{display:flex;justify-content:space-between;margin-top:34px;padding:0 20px;font-weight:600;}
+  .rsign .ln{border-top:1px dotted #333;padding-top:4px;min-width:150px;text-align:center;}
+  .regempty{padding:22px;text-align:center;color:#667;}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="steps"><div class="step on" id="st1" data-tab="1"><b>১</b> আপলোড</div><div class="step" id="st2" data-tab="2"><b>২</b> ভাউচার তৈরি</div><div class="step" id="st3" data-tab="3"><b>৩</b> বিল রেজিস্টার</div></div>
+  <div class="steps"><div class="step on" id="st1" data-tab="1"><b>১</b> আপলোড</div><div class="step" id="st2" data-tab="2"><b>২</b> ভাউচার তৈরি</div><div class="step" id="st3" data-tab="3"><b>৩</b> বিল রেজিস্টার</div><div class="step" id="st4" data-tab="4"><b>৪</b> রেজিস্টার সমূহ</div></div>
   <div class="hintbar muted" style="margin-bottom:12px;">ডাটা এই ব্রাউজারে <b>সেভ</b> থাকে (রিফ্রেশেও মুছবে না — আসল ব্রাউজারে খুললে)। SutonnyMJ ফন্ট ইনস্টল থাকলে সেই ফন্টে দেখাবে।</div>
 
   <div class="card upcard panel on" id="p1">
@@ -132,6 +167,21 @@
       <div class="sum" id="billSum"></div>
     </div>
   </div>
+
+  <div class="card panel" id="p4">
+    <h3>৪ · রেজিস্টার সমূহ</h3>
+    <div class="body">
+      <div class="hintbar muted" style="margin-bottom:10px">প্রতিটি তহবিলের সহকারী ফান্ড জমা-খরচ বহি। <b>ব্যয় দিক</b> বিল রেজিস্টার থেকে <b>মান মিলিয়ে</b> অটো আসে; <b>আয় দিক</b> ও নিচের ছক হাতে লিখুন। সব ঘরই এডিটেবল ও নিজে সেভ হয়।</div>
+      <div class="subtabs" id="subtabs"></div>
+      <div class="regbar">
+        <button class="btn btn-o btn-s" id="regAddInc">➕ আয় সারি</button>
+        <button class="btn btn-p btn-s" id="regSave">💾 সেভ</button>
+        <button class="btn btn-o btn-s" id="regDl">⬇ ডাউনলোড (HTML)</button>
+        <button class="btn btn-o btn-s" id="regPrint">🖨 প্রিন্ট / PDF</button>
+      </div>
+      <div id="regBody"></div>
+    </div>
+  </div>
 </div>
 
 <div class="overlay" id="overlay"><div class="modal"><div class="mhead"><b>ভাউচার প্রিভিউ</b><button class="btn btn-o btn-s" id="mPrint">🖨 প্রিন্ট/ডাউনলোড</button><button class="btn btn-r btn-s" id="mClose">✕ বন্ধ</button></div><div id="modalBody"></div></div></div>
@@ -148,15 +198,15 @@
   var MONTHS=['','জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
 
   /* ====== ⚙️ কনফিগ — এই দুই কোটেশনের ভিতরে Supabase-এর তথ্য বসান (খালি রাখলে শুধু এই ব্রাউজারে সেভ হবে) ====== */
-  var SUPABASE_URL = "https://nrenfzzxckpdgpnoyeel.supabase.co/rest/v1/";        // ← এখানে Project URL বসান, যেমন: https://abcd1234.supabase.co
-  var SUPABASE_ANON_KEY = "sb_publishable_KwFyVE3gh9v43wyQG-gIfg_2jgE2xiw";   // ← এখানে anon public key বসান
+  var SUPABASE_URL = "";        // ← এখানে Project URL বসান, যেমন: https://abcd1234.supabase.co
+  var SUPABASE_ANON_KEY = "";   // ← এখানে anon public key বসান
   /* ================================================================================================ */
 
   var LS='bcpsc-voucher-app';
   var state={ vouchers:[], bill:[] };
   var sb=null, useCloud=false;
   try{ if(SUPABASE_URL && SUPABASE_URL.indexOf('http')===0 && SUPABASE_ANON_KEY && window.supabase){ sb=window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); useCloud=true; } }catch(e){}
-  function normalize(){ if(!state||typeof state!=='object') state={}; if(!Array.isArray(state.vouchers)) state.vouchers=[]; if(!Array.isArray(state.bill)) state.bill=[]; if(!Array.isArray(state.images)) state.images=[]; if(!Array.isArray(state.pending)) state.pending=[]; }
+  function normalize(){ if(!state||typeof state!=='object') state={}; if(!Array.isArray(state.vouchers)) state.vouchers=[]; if(!Array.isArray(state.bill)) state.bill=[]; if(!Array.isArray(state.images)) state.images=[]; if(!Array.isArray(state.pending)) state.pending=[]; if(!state.reg||typeof state.reg!=='object') state.reg={}; }
   var saveT;
   function setStatus(html){ var hb=document.querySelector('.hintbar'); if(hb) hb.innerHTML=html; }
   function localGet(){ try{var s=localStorage.getItem(LS); if(s){var p=JSON.parse(s); if(p&&typeof p==='object') state=p;}}catch(e){} }
@@ -252,7 +302,7 @@
   function addAllPending(){ while(state.pending.length){ addVoucherFromRow(state.pending.shift()); } save(); renderVouchers(); renderPending(); }
   function renderPending(){ var bar=document.getElementById('pendingBar'); if(!bar) return; var n=state.pending.length; bar.hidden=!n; var c=document.getElementById('pendingCount'); if(c) c.textContent='AI-পড়া বাকি সারি: '+bn(n)+' — '; }
   function setStep(n){}
-  function showTab(n){ n=String(n); ['1','2','3'].forEach(function(k){ var p=document.getElementById('p'+k); if(p) p.classList.toggle('on', k===n); var s=document.getElementById('st'+k); if(s) s.classList.toggle('on', k===n); }); }
+  function showTab(n){ n=String(n); ['1','2','3','4'].forEach(function(k){ var p=document.getElementById('p'+k); if(p) p.classList.toggle('on', k===n); var s=document.getElementById('st'+k); if(s) s.classList.toggle('on', k===n); }); if(n==='4'){ renderRegisters(); } }
 
   function ce(v,f){ return '<span class="edit" data-f="'+f+'" contenteditable="'+(v.locked?'false':'true')+'" spellcheck="false">'+esc(v[f])+'</span>'; }
   function voucherInner(v){
@@ -413,6 +463,156 @@
     state.bill.forEach(function(r){ lines.push([r.serial,r.date,r.payee,r.babod,r.taka,r.hi,r.toho,r.khat].map(q).join(',')); });
     dlFile('monthly-bill.csv', '\ufeff'+lines.join('\r\n'), 'text/csv;charset=utf-8'); toast('⬇ CSV ডাউনলোড হচ্ছে');
   });
+
+  /* ===== ৪ · রেজিস্টার সমূহ ===== */
+  var FUNDS=[
+    {name:'ইমারত তহবিল',        keys:['ইমারত','ইমারৎ','building','construct','নির্মাণ']},
+    {name:'গেমস তহবিল',         keys:['গেম','খেলা','ক্রীড়া','games','game','sport']},
+    {name:'মেডিকেল তহবিল',      keys:['মেডিক','চিকিৎসা','স্বাস্থ্য','medical','health']},
+    {name:'লাইব্রেরি তহবিল',     keys:['লাইব্রে','গ্রন্থ','পাঠাগার','library']},
+    {name:'পরীক্ষা তহবিল',       keys:['পরীক্ষা','exam','test']},
+    {name:'স্টাফ কল্যাণ তহবিল',   keys:['স্টাফ','কর্মচারী','staff','employee']},
+    {name:'ছাত্র কল্যাণ তহবিল',    keys:['ছাত্র','শিক্ষার্থী','student']},
+    {name:'পরিবহণ তহবিল',       keys:['পরিবহ','যানবাহন','গাড়ি','transport','bus']},
+    {name:'স্কাউট তহবিল',        keys:['স্কাউট','scout']},
+    {name:'বিএনসিসি তহবিল',      keys:['বিএনসিসি','এনসিসি','bncc','ncc']},
+    {name:'বৃত্তি তহবিল',         keys:['বৃত্তি','উপবৃত্তি','scholar','stipend']}
+  ];
+  var regFund=0; // 0..10 = তহবিল, -1 = মেলেনি
+  function rnorm(s){ return String(s==null?'':s).replace(/[\s‌‍্]/g,'').replace(/তহবিলের|তহবিল|ফান্ড|fund/gi,'').toLowerCase(); }
+  function matchIdx(toho){ var rt=rnorm(toho); if(!rt) return -1; for(var i=0;i<FUNDS.length;i++){ var ks=FUNDS[i].keys; for(var j=0;j<ks.length;j++){ var k=rnorm(ks[j]); if(k && rt.indexOf(k)>=0) return i; } } return -1; }
+  function fundBill(i){ return state.bill.filter(function(r){ return matchIdx(r.toho)===i; }); }
+  function regKey(i){ return i<0?'__miss__':FUNDS[i].name; }
+  function regEntry(i){ var k=regKey(i); var e=state.reg[k]; if(!e||typeof e!=='object') e=state.reg[k]={}; if(!Array.isArray(e.income)) e.income=[]; if(!e.audit) e.audit={}; if(!e.status) e.status={}; if(e.month==null) e.month=''; return e; }
+  function grpLakh(n){ n=String(n); var neg=n.charAt(0)==='-'; if(neg) n=n.slice(1); if(n.length<=3) return (neg?'-':'')+n; var last3=n.slice(-3), rest=n.slice(0,-3); rest=rest.replace(/\B(?=(\d{2})+(?!\d))/g,','); return (neg?'-':'')+rest+','+last3; }
+  function rmoney(v){ if(!v) return ''; return bn(grpLakh(Math.round(v)))+'/-'; }
+  function regMonthText(i){ var e=regEntry(i); if(e.month) return e.month; var rows=fundBill(i); for(var x=0;x<rows.length;x++){ var p=toEn(rows[x].date).replace(/[^0-9]+/g,' ').trim().split(' '); if(p.length>=2){ var mm=parseInt(p[1],10), yy=p.length>=3?parseInt(p[2],10):0; if(mm>=1&&mm<=12) return MONTHS[mm]+(yy?(' '+bn(yy)):''); } } return ''; }
+
+  function renderSubtabs(){
+    var s=document.getElementById('subtabs'); if(!s) return; var h='';
+    FUNDS.forEach(function(f,i){ var c=fundBill(i).length; h+='<span class="subtab'+(regFund===i?' on':'')+'" data-subtab="'+i+'">'+esc(f.name)+' <span class="cnt">('+bn(c)+')</span></span>'; });
+    var mc=fundBill(-1).length;
+    if(mc>0 || regFund===-1){ h+='<span class="subtab miss'+(regFund===-1?' on':'')+'" data-subtab="-1">অন্যান্য / মেলেনি <span class="cnt">('+bn(mc)+')</span></span>'; }
+    s.innerHTML=h;
+  }
+
+  function regCellEd(val,attrs,cls){ return '<td'+(cls?' class="'+cls+'"':'')+' contenteditable="true" spellcheck="false" '+attrs+'>'+esc(val||'')+'</td>'; }
+
+  function renderRegisters(){
+    renderSubtabs();
+    var body=document.getElementById('regBody'); if(!body) return;
+    var i=regFund, e=regEntry(i), exp=fundBill(i), inc=e.income||[];
+    var fundName=(i<0?'অন্যান্য / মেলেনি':FUNDS[i].name);
+    var monthT=regMonthText(i);
+    var n=Math.max(inc.length, exp.length);
+    var rows='';
+    if(n===0){
+      rows='<tr><td colspan="12" class="regempty">এই তহবিলে এখনো কোনো এন্ট্রি নেই। বিল রেজিস্টারে এই তহবিলের সারি এলে ব্যয় দিকে আসবে, অথবা ➕ আয় সারি চাপুন।</td></tr>';
+    } else {
+      for(var k=0;k<n;k++){
+        var ir=inc[k]||null, er=exp[k]||null;
+        var open=ir?num(ir.open):null, iamt=ir?num(ir.amt):null, eamt=er?num(er.taka):null;
+        var c5=(open||0)+(iamt||0);
+        var c10=c5-(eamt||0);
+        var cls=er?'exp':'';
+        rows+='<tr'+(cls?' class="'+cls+'"':'')+'>';
+        // আয় দিক (১-৫)
+        rows+=regCellEd(ir?ir.date:'', 'data-inc="date" data-ri="'+k+'"');
+        rows+=regCellEd(ir?ir.open:'', 'data-inc="open" data-ri="'+k+'"','m');
+        rows+=regCellEd(ir?ir.desc:'', 'data-inc="desc" data-ri="'+k+'"','d');
+        rows+=regCellEd(ir?ir.amt:'',  'data-inc="amt" data-ri="'+k+'"','m');
+        rows+='<td class="c">'+((ir)?rmoney(c5):'')+'</td>';
+        // ব্যয় দিক (৬-১১)
+        if(er){
+          rows+=regCellEd(er.date, 'data-bid="'+er.id+'" data-bf="date"');
+          rows+=regCellEd(er.serial,'data-bid="'+er.id+'" data-bf="serial"');
+          rows+=regCellEd(er.babod,'data-bid="'+er.id+'" data-bf="babod"','d');
+          rows+=regCellEd(er.taka, 'data-bid="'+er.id+'" data-bf="taka"','m');
+          rows+='<td class="c">'+rmoney(c10)+'</td>';
+          rows+=regCellEd(er.rem||'','data-bid="'+er.id+'" data-bf="rem"');
+        } else {
+          rows+='<td></td><td></td><td class="d"></td><td class="m"></td><td class="c"></td><td></td>';
+        }
+        // act (অ্যাপ-only)
+        var acts='';
+        if(ir) acts+='<span class="rdel" data-delinc="'+k+'">আয় ✕</span>';
+        if(er) acts+='<span class="rdel" data-delbill="'+er.id+'">ব্যয় ✕</span>';
+        rows+='<td class="act act2">'+acts+'</td>';
+        rows+='</tr>';
+      }
+    }
+    var tIncome=0,tExp=0; inc.forEach(function(r){ tIncome+=num(r.amt)||0; }); exp.forEach(function(r){ tExp+=num(r.taka)||0; });
+
+    var a=e.audit, st=e.status;
+    var html=''
+    +'<div class="regsheet" id="regSheet">'
+    +'<div class="rhead"><div class="rh1">প্রতিষ্ঠানের নাম ঃ বগুড়া ক্যান্টনমেন্ট পাবলিক স্কুল ও কলেজ</div><div>সহকারী ফান্ডের জন্য জমা-খরচ বহি</div></div>'
+    +'<div class="rmeta"><div class="rfund">তহবিলের নাম ঃ <span>'+esc(fundName)+'</span></div><div>মাসের নাম ঃ <span contenteditable="true" spellcheck="false" data-rmonth="1">'+esc(monthT)+'</span></div></div>'
+    +'<table class="rtable"><thead>'
+    +'<tr class="grp"><th colspan="5">আয়</th><th colspan="6">ব্যয়</th><th class="act">—</th></tr>'
+    +'<tr><th>তারিখ</th><th>প্রারম্ভিক ব্যালেন্স</th><th>আয়ের বিবরণ</th><th>টাকার পরিমাণ</th><th>ব্যালেন্সসহ মোট (২+৪)</th><th>তারিখ</th><th>ভাউচার নং</th><th>খরচের বিবরণ</th><th>টাকার পরিমাণ</th><th>সমাপনী ব্যালেন্স (৫−৯)</th><th>মন্তব্য</th><th class="act">—</th></tr>'
+    +'<tr class="colno"><td>১</td><td>২</td><td>৩</td><td>৪</td><td>৫</td><td>৬</td><td>৭</td><td>৮</td><td>৯</td><td>১০</td><td>১১</td><td class="act"></td></tr>'
+    +'</thead><tbody id="regRows">'+rows+'</tbody>'
+    +'<tfoot><tr class="totr"><td colspan="3" style="text-align:right">মোট =</td><td class="m">'+rmoney(tIncome)+'</td><td></td><td colspan="3" style="text-align:right">সর্বমোট =</td><td class="m">'+rmoney(tExp)+'</td><td></td><td></td><td class="act"></td></tr></tfoot>'
+    +'</table>'
+    +'<div class="rboxes">'
+    +'<div class="rbox"><div class="cap">অডিট কমিটির যাচাই এবং নির্ভুল প্রাপ্তি</div><table>'
+    +'<tr><th>পদবী</th><th>নাম</th><th>স্বাক্ষর</th></tr>'
+    +'<tr><td>কমিটি প্রধান</td><td contenteditable="true" data-audit="chief">'+esc(a.chief||'')+'</td><td></td></tr>'
+    +'<tr><td>সদস্য ১</td><td contenteditable="true" data-audit="m1">'+esc(a.m1||'')+'</td><td></td></tr>'
+    +'<tr><td>সদস্য ২</td><td contenteditable="true" data-audit="m2">'+esc(a.m2||'')+'</td><td></td></tr>'
+    +'<tr><td>সদস্য ৩</td><td contenteditable="true" data-audit="m3">'+esc(a.m3||'')+'</td><td></td></tr>'
+    +'<tr><td colspan="3" style="text-align:left">তারিখ ঃ <span contenteditable="true" data-audit="date">'+esc(a.date||'')+'</span></td></tr>'
+    +'</table></div>'
+    +'<div class="rbox"><div class="cap">'+esc(monthT?('০১ '+monthT):'মাস শুরুর')+' তারিখে ফান্ডের অবস্থা</div><table>'
+    +'<tr><td style="width:30px">১।</td><td style="text-align:left">স্থায়ী এফডিআর</td><td contenteditable="true" data-status="fdr" style="text-align:right;width:120px">'+esc(st.fdr||'')+'</td></tr>'
+    +'<tr><td>২।</td><td style="text-align:left">ব্যাংকে জমা</td><td contenteditable="true" data-status="bank" style="text-align:right">'+esc(st.bank||'')+'</td></tr>'
+    +'<tr><td>৩।</td><td style="text-align:left">হাতে নগদ</td><td contenteditable="true" data-status="cash" style="text-align:right">'+esc(st.cash||'')+'</td></tr>'
+    +'<tr><td colspan="2" style="text-align:right">সর্বমোট =</td><td contenteditable="true" data-status="total" style="text-align:right">'+esc(st.total||'')+'</td></tr>'
+    +'</table></div>'
+    +'</div>'
+    +'<div class="rsign"><div><div class="ln">অধ্যক্ষ</div></div><div><div class="ln">হিসাবরক্ষণ কর্মকর্তা</div></div></div>'
+    +'</div>';
+    body.innerHTML=html;
+  }
+
+  function regRecalcRow(tr){ if(!tr||!tr.cells||tr.cells.length<11) return; var c=tr.cells; var open=num(c[1].textContent)||0, iamt=num(c[3].textContent)||0, eamt=num(c[8].textContent)||0; var has5=(c[0].textContent||c[1].textContent||c[2].textContent||c[3].textContent); c[4].textContent=has5?rmoney(open+iamt):''; if(c[9].classList.contains('c')){ var isExp=tr.classList.contains('exp'); c[9].textContent=isExp?rmoney((open+iamt)-eamt):''; } }
+  function regRecalcTot(){ var e=regEntry(regFund); var ti=0,te=0; (e.income||[]).forEach(function(r){ ti+=num(r.amt)||0; }); fundBill(regFund).forEach(function(r){ te+=num(r.taka)||0; }); var tf=document.querySelector('#regBody .totr'); if(tf){ tf.cells[1].textContent=rmoney(ti); tf.cells[4].textContent=rmoney(te); } }
+
+  document.getElementById('p4').addEventListener('input', function(e){
+    var t=e.target; if(!t.getAttribute || t.getAttribute('contenteditable')!=='true') return;
+    var e0=regEntry(regFund);
+    if(t.dataset.inc!=null){ var ri=+t.dataset.ri; e0.income[ri]=e0.income[ri]||{}; e0.income[ri][t.dataset.inc]=t.textContent; }
+    else if(t.dataset.bid){ var r=state.bill.filter(function(x){return x.id===t.dataset.bid;})[0]; if(r) r[t.dataset.bf]=t.textContent; }
+    else if(t.dataset.audit!=null){ e0.audit[t.dataset.audit]=t.textContent; }
+    else if(t.dataset.status!=null){ e0.status[t.dataset.status]=t.textContent; }
+    else if(t.dataset.rmonth!=null){ e0.month=t.textContent; }
+    var tr=t.closest('tr'); if(tr) regRecalcRow(tr); regRecalcTot(); save();
+  });
+
+  document.getElementById('p4').addEventListener('click', function(e){
+    var st=e.target.closest('[data-subtab]'); if(st){ regFund=parseInt(st.dataset.subtab,10); renderRegisters(); return; }
+    var di=e.target.closest('[data-delinc]'); if(di){ var e0=regEntry(regFund); e0.income.splice(+di.dataset.delinc,1); save(); renderRegisters(); toast('🗑 আয় সারি মুছে ফেলা হয়েছে'); return; }
+    var db=e.target.closest('[data-delbill]'); if(db){ state.bill=state.bill.filter(function(x){return x.id!==db.dataset.delbill;}); save(); renderBill(); renderRegisters(); toast('🗑 ব্যয় সারি (বিল রেজিস্টার থেকেও) মুছে ফেলা হয়েছে'); return; }
+  });
+  document.getElementById('regAddInc').addEventListener('click', function(){ regEntry(regFund).income.push({}); save(); renderRegisters(); });
+  document.getElementById('regSave').addEventListener('click', function(){ save(); toast('💾 সেভ হয়েছে'); });
+  document.getElementById('regPrint').addEventListener('click', function(){ window.print(); });
+  function regDownloadDoc(){
+    var sheet=document.getElementById('regSheet'); if(!sheet) return '';
+    var clone=sheet.cloneNode(true);
+    clone.querySelectorAll('.act, .act2').forEach(function(x){ x.remove(); });
+    clone.querySelectorAll('[contenteditable]').forEach(function(x){ x.removeAttribute('contenteditable'); });
+    var css='body{font-family:\'Hind Siliguri\',sans-serif;padding:16px;color:#111}'
+      +'.rhead{text-align:center;line-height:1.4}.rh1{font-weight:700}'
+      +'.rmeta{display:flex;justify-content:space-between;font-weight:600;margin:8px 2px}.rfund span{text-decoration:underline}'
+      +'.rtable{border-collapse:collapse;width:100%;font-size:.82rem}.rtable th,.rtable td{border:1px solid #333;padding:3px 5px;text-align:center}.rtable thead th{background:#eef3ef}.rtable td.d{text-align:right}.rtable td.m,.rtable td.c{text-align:right}.grp{background:#e4ece6;font-weight:700}'
+      +'.rboxes{display:flex;gap:16px;margin-top:16px}.rbox{flex:1}.rbox .cap{font-weight:700;text-align:center;background:#eef3ef;border:1px solid #333;border-bottom:none;padding:3px}.rbox table{border-collapse:collapse;width:100%;font-size:.8rem}.rbox th,.rbox td{border:1px solid #333;padding:3px 5px}'
+      +'.rsign{display:flex;justify-content:space-between;margin-top:40px;padding:0 24px;font-weight:600}.rsign .ln{border-top:1px dotted #333;padding-top:4px;min-width:160px;text-align:center}';
+    var title=(regFund<0?'অন্যান্য':FUNDS[regFund].name)+' - '+regMonthText(regFund);
+    return '<!doctype html><html lang="bn"><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>'+css+'</style></head><body>'+clone.innerHTML+'</body></html>';
+  }
+  document.getElementById('regDl').addEventListener('click', function(){ var doc=regDownloadDoc(); if(!doc){toast('কিছু নেই');return;} var nm=((regFund<0?'onnanno':'fund-'+(regFund+1))+'-register.html'); dlFile(nm, doc, 'text/html'); toast('⬇ রেজিস্টার ডাউনলোড হচ্ছে'); });
 
   load(function(){
     if(!state.vouchers.length) state.vouchers.push(blankV());

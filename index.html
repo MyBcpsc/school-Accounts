@@ -76,19 +76,39 @@
     .voucher .edit{color:#000 !important; background:none !important;}
     table{min-width:0;} td[contenteditable]{color:#000;}
     .billcard{page-break-before:always;}
+    .fund-sidebar{display:none !important;} .p4-layout{display:block;} .p4-main{padding:0;}
     @page{margin:8mm;}
   }
   @media (max-width:720px){ .toprow{flex-direction:column;} .moneyrow .via{margin-left:0;} }
   .step{cursor:pointer;}
   .panel{display:none;}
   .panel.on{display:block;}
-  /* রেজিস্টার সমূহ (ট্যাব ৪) */
-  .subtabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+  /* রেজিস্টার সমূহ (ট্যাব ৪) — সাইডবার লেআউট */
+  .p4-layout{display:flex;align-items:flex-start;}
+  .fund-sidebar{width:188px;min-width:188px;flex-shrink:0;border-right:1px solid var(--line);background:#f4f7f5;align-self:stretch;}
+  .fund-sidebar .sbhead{font-size:.72rem;font-weight:700;color:#67766e;padding:8px 12px 5px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--line);}
+  #subtabs{display:block !important;}
+  #subtabs .subtab{display:flex !important;justify-content:space-between;align-items:center;width:100%;box-sizing:border-box;border-radius:0 !important;border:none !important;border-bottom:1px solid #e2e8e0 !important;padding:9px 12px !important;background:transparent !important;font-size:.84rem !important;font-weight:600;color:#2f5140;cursor:pointer;text-align:left;}
+  #subtabs .subtab:hover{background:#e9f0ec !important;}
+  #subtabs .subtab.on{background:var(--green) !important;color:#fff !important;border-color:transparent !important;}
+  #subtabs .subtab.miss{color:#8a5a12 !important;background:transparent !important;}
+  #subtabs .subtab.miss.on{background:#8a5a12 !important;color:#fff !important;}
+  #subtabs .subtab .cnt{opacity:.65;font-weight:500;font-size:.78rem;}
+  .p4-main{flex:1;min-width:0;padding:12px 16px;}
+  /* fallback (unused, kept for compatibility) */
   .subtab{cursor:pointer;padding:6px 12px;border:1px solid #cfd6cf;border-radius:20px;background:#fff;font-size:.85rem;font-weight:600;color:#2f5140;}
   .subtab .cnt{opacity:.7;font-weight:500;}
   .subtab.on{background:#1e5c4f;color:#fff;border-color:#1e5c4f;}
   .subtab.miss{color:#8a5a12;border-color:#e0c38a;background:#fdf6e9;}
   .subtab.miss.on{background:#8a5a12;color:#fff;border-color:#8a5a12;}
+  @media (max-width:900px){
+    .p4-layout{flex-direction:column;}
+    .fund-sidebar{width:100%;min-width:0;border-right:none;border-bottom:2px solid var(--line);background:#f4f7f5;}
+    #subtabs{display:flex !important;flex-wrap:wrap;gap:5px;padding:8px 10px;}
+    #subtabs .subtab{width:auto !important;border-radius:18px !important;border:1px solid #cfd6cf !important;padding:5px 11px !important;font-size:.8rem !important;}
+    #subtabs .subtab.on{border-color:var(--green) !important;background:var(--green) !important;color:#fff !important;}
+    #subtabs .subtab.miss.on{border-color:#8a5a12 !important;background:#8a5a12 !important;}
+  }
   .regbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;}
   #regBody .rhead{text-align:center;line-height:1.35;}
   #regBody .rhead .rh1{font-weight:700;}
@@ -170,16 +190,23 @@
 
   <div class="card panel" id="p4">
     <h3>৪ · রেজিস্টার সমূহ</h3>
-    <div class="body">
-      <div class="hintbar muted" style="margin-bottom:10px">প্রতিটি তহবিলের সহকারী ফান্ড জমা-খরচ বহি। <b>ব্যয় দিক</b> বিল রেজিস্টার থেকে <b>মান মিলিয়ে</b> অটো আসে; <b>আয় দিক</b> ও নিচের ছক হাতে লিখুন। সব ঘরই এডিটেবল ও নিজে সেভ হয়।</div>
-      <div class="subtabs" id="subtabs"></div>
-      <div class="regbar">
-        <button class="btn btn-o btn-s" id="regAddInc">➕ আয় সারি</button>
-        <button class="btn btn-p btn-s" id="regSave">💾 সেভ</button>
-        <button class="btn btn-o btn-s" id="regDl">⬇ ডাউনলোড (HTML)</button>
-        <button class="btn btn-o btn-s" id="regPrint">🖨 প্রিন্ট / PDF</button>
+    <div class="body" style="padding:0">
+      <div class="p4-layout">
+        <div class="fund-sidebar">
+          <div class="sbhead">তহবিল</div>
+          <div id="subtabs"></div>
+        </div>
+        <div class="p4-main">
+          <div class="hintbar muted" style="margin-bottom:10px">প্রতিটি তহবিলের সহকারী ফান্ড জমা-খরচ বহি। <b>ব্যয় দিক</b> বিল রেজিস্টার থেকে <b>মান মিলিয়ে</b> অটো আসে; <b>আয় দিক</b> ও নিচের ছক হাতে লিখুন। সব ঘরই এডিটেবল ও নিজে সেভ হয়।</div>
+          <div class="regbar">
+            <button class="btn btn-o btn-s" id="regAddInc">➕ আয় সারি</button>
+            <button class="btn btn-p btn-s" id="regSave">💾 সেভ</button>
+            <button class="btn btn-o btn-s" id="regDl">⬇ ডাউনলোড (HTML)</button>
+            <button class="btn btn-o btn-s" id="regPrint">🖨 প্রিন্ট / PDF</button>
+          </div>
+          <div id="regBody"></div>
+        </div>
       </div>
-      <div id="regBody"></div>
     </div>
   </div>
 </div>
@@ -198,8 +225,8 @@
   var MONTHS=['','জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
 
   /* ====== ⚙️ কনফিগ — এই দুই কোটেশনের ভিতরে Supabase-এর তথ্য বসান (খালি রাখলে শুধু এই ব্রাউজারে সেভ হবে) ====== */
-  var SUPABASE_URL = "https://nrenfzzxckpdgpnoyeel.supabase.co/rest/v1/";        // ← এখানে Project URL বসান, যেমন: https://abcd1234.supabase.co
-  var SUPABASE_ANON_KEY = "sb_publishable_KwFyVE3gh9v43wyQG-gIfg_2jgE2xiw";   // ← এখানে anon public key বসান
+  var SUPABASE_URL = "";        // ← এখানে Project URL বসান, যেমন: https://abcd1234.supabase.co
+  var SUPABASE_ANON_KEY = "";   // ← এখানে anon public key বসান
   /* ================================================================================================ */
 
   var LS='bcpsc-voucher-app';

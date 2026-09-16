@@ -61,6 +61,13 @@
   td.act{text-align:center;} .delrow{background:#fff; color:#b23b3b; border:1px solid #e6c6c6; border-radius:6px; cursor:pointer; padding:2px 8px;}
   .ttl{text-align:center; margin-bottom:8px;} .ttl h1{font-size:1.1rem; font-weight:700; margin:0;} .ttl h2{font-size:.95rem; font-weight:600; margin:2px 0 0;}
   .empty td{text-align:center; color:#999; padding:14px;}
+  tr.b-sub td{background:#e5f5ec; color:#1a5c3e;}
+  tr.b-sub td[contenteditable]:focus{background:#d2eedd; outline:none;}
+  #billFBar{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;padding:8px 12px;background:#f4f7f5;border-radius:8px;border:1px solid var(--line);}
+  #billFBar b{font-size:.85rem;color:#3a5a46;white-space:nowrap;}
+  #billFundFilter{padding:4px 10px;border:1px solid #b0c4b8;border-radius:6px;font-family:inherit;font-size:.88rem;background:#fff;cursor:pointer;}
+  #billFilterActions{gap:8px;align-items:center;}
+  #billFilterSummary{margin-left:auto;font-size:.85rem;font-weight:700;color:#1e5c4f;}
   .sum{display:flex; gap:22px; margin-top:10px; font-weight:600; font-size:.9rem; flex-wrap:wrap;}
   .overlay{position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:flex-start; justify-content:center; padding:24px; overflow:auto; z-index:50;}
   .overlay.on{display:flex;}
@@ -177,6 +184,16 @@
     <h3>৩ · মাসিক বিল রেজিস্টার</h3>
     <div class="body">
       <div class="row-actions"><button class="btn btn-p" id="dlBillHtml">⬇ ডাউনলোড (HTML)</button><button class="btn btn-o" id="dlBillCsv">⬇ Excel (CSV)</button><button class="btn btn-o" id="printBill">🖨 প্রিন্ট / PDF</button><span class="muted">প্রতিটি ঘর ক্লিক করে এডিট করুন — নিজে থেকে সেভ হয়।</span></div>
+      <!-- তহবিল ফিল্টার বার -->
+      <div id="billFBar">
+        <b>তহবিল ফিল্টার:</b>
+        <select id="billFundFilter"><option value="">সব তহবিল</option></select>
+        <div id="billFilterActions" style="display:none;">
+          <button id="billSubmitFund" class="btn btn-p" style="font-size:.82rem;padding:5px 14px;">✅ সাবমিট করুন</button>
+          <button id="billDesort" class="btn btn-o" style="font-size:.82rem;padding:5px 14px;">↺ ডিসর্ট</button>
+        </div>
+        <span id="billFilterSummary"></span>
+      </div>
       <div class="ttl"><h1>বগুড়া ক্যান্টনমেন্ট পাবলিক স্কুল ও কলেজ</h1><h2 id="billTitle">মাসিক বিল</h2></div>
       <div class="tbl-wrap">
         <table>
@@ -225,8 +242,8 @@
   var MONTHS=['','জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
 
   /* ====== ⚙️ কনফিগ — এই দুই কোটেশনের ভিতরে Supabase-এর তথ্য বসান (খালি রাখলে শুধু এই ব্রাউজারে সেভ হবে) ====== */
-  var SUPABASE_URL = "https://nrenfzzxckpdgpnoyeel.supabase.co/rest/v1/";        // ← এখানে Project URL বসান, যেমন: https://abcd1234.supabase.co
-  var SUPABASE_ANON_KEY = "sb_publishable_KwFyVE3gh9v43wyQG-gIfg_2jgE2xiw";   // ← এখানে anon public key বসান
+  var SUPABASE_URL = "";        // ← এখানে Project URL বসান, যেমন: https://abcd1234.supabase.co
+  var SUPABASE_ANON_KEY = "";   // ← এখানে anon public key বসান
   /* ================================================================================================ */
 
   var LS='bcpsc-voucher-app';
@@ -387,12 +404,16 @@
   });
 
   function billFromV(v){ var d=(v.demand||'').split('/').map(function(x){return x.trim();});
-    return { id:'b'+v.id, vId:v.id, serial:v.bill, date:v.date, payee:v.payee, babod:v.babod, taka:v.taka, hi:'', toho:d[1]||'', khat:d[2]||'' }; }
+    return { id:'b'+v.id, vId:v.id, serial:v.bill, date:v.date, payee:v.payee, babod:v.babod, taka:v.taka, hi:'',
+             toho:v.fund||'',          /* ① ভাউচার নং (Mark 1) → তহবিল */
+             khat:d[d.length-1]||'',  /* ② ডিমান্ড শেষাংশ (Mark 2) → খাত */
+             bsubmit:false }; }         /* তহবিলে সাবমিট স্ট্যাটাস */
   function submitVoucher(v){
     v.submitted=true; v.locked=true;
     var ex=state.bill.filter(function(r){return r.vId===v.id;})[0];
     var row=billFromV(v);
-    if(ex){ for(var k in row) ex[k]=row[k]; } else { state.bill.push(row); }
+    if(ex){ var wasSub=ex.bsubmit; for(var k in row) ex[k]=row[k]; ex.bsubmit=wasSub||false; }
+    else { state.bill.push(row); }
     save(); renderVouchers(); renderBill(); setStep(3);
     toast('✅ সাবমিট → বিল রেজিস্টারে যুক্ত');
     document.querySelector('.billcard').scrollIntoView({behavior:'smooth'});
@@ -402,13 +423,44 @@
     for(var i=0;i<state.bill.length;i++){ var p=toEn(state.bill[i].date).replace(/[^0-9]+/g,' ').trim().split(' '); if(p.length>=2){var mm=parseInt(p[1],10),yy=p.length>=3?parseInt(p[2],10):0; if(mm>=1&&mm<=12){m=mm;y=yy;break;}} }
     document.getElementById('billTitle').textContent = m?('মাসিক বিল - '+MONTHS[m]+(y?(' '+bn(y)):'')):'মাসিক বিল';
   }
+  var billFilter=''; /* তহবিল ফিল্টার স্টেট */
+
   function renderBill(){
     var tb=document.getElementById('billRows'); tb.innerHTML='';
-    if(!state.bill.length){ tb.innerHTML='<tr class="empty"><td colspan="9">এখনো কোনো এন্ট্রি নেই — ভাউচার সাবমিট করলে এখানে আসবে।</td></tr>'; document.getElementById('billSum').textContent=''; updateBillTitle(); return; }
+
+    /* ফিল্টার ড্রপডাউন আপডেট */
+    var sel=document.getElementById('billFundFilter');
+    if(sel){
+      var funds=[]; var seen={};
+      state.bill.forEach(function(r){ if(r.toho&&!seen[r.toho]){seen[r.toho]=1;funds.push(r.toho);} });
+      funds.sort();
+      sel.innerHTML='<option value="">সব তহবিল</option>';
+      funds.forEach(function(f){ sel.innerHTML+='<option value="'+esc(f)+'"'+(f===billFilter?' selected':'')+'>'+(f)+'</option>'; });
+    }
+
+    /* ফিল্টার্ড ডেটা */
+    var display=billFilter ? state.bill.filter(function(r){return r.toho===billFilter;}) : state.bill;
+
+    /* ফিল্টার অ্যাকশন বার */
+    var fa=document.getElementById('billFilterActions');
+    if(fa) fa.style.display=billFilter?'flex':'none';
+    var fs=document.getElementById('billFilterSummary');
+    if(fs){
+      if(billFilter){
+        var submCount=display.filter(function(r){return r.bsubmit;}).length;
+        fs.textContent='ফিল্টার: '+billFilter+' — '+bn(display.length)+' টি এন্ট্রি'+(submCount?' ('+bn(submCount)+' সাবমিটেড)':'');
+      } else { fs.textContent=''; }
+    }
+
+    if(!display.length){
+      tb.innerHTML='<tr class="empty"><td colspan="9">'+(state.bill.length?'এই তহবিলে কোনো এন্ট্রি নেই।':'এখনো কোনো এন্ট্রি নেই — ভাউচার সাবমিট করলে এখানে আসবে।')+'</td></tr>';
+      document.getElementById('billSum').textContent=''; updateBillTitle(); return;
+    }
     var total=0;
-    state.bill.forEach(function(r){
+    display.forEach(function(r){
       var t=num(r.taka); if(t!=null) total+=t;
       var tr=document.createElement('tr'); tr.dataset.bid=r.id;
+      if(r.bsubmit) tr.classList.add('b-sub');
       tr.innerHTML='<td class="serial" contenteditable data-bf="serial">'+esc(r.serial)+'</td>'
         +'<td contenteditable data-bf="date">'+esc(r.date)+'</td>'
         +'<td contenteditable data-bf="payee">'+esc(r.payee)+'</td>'
@@ -420,7 +472,7 @@
         +'<td class="act"><button class="delrow" data-del="1">✕</button></td>';
       tb.appendChild(tr);
     });
-    document.getElementById('billSum').innerHTML='<span>মোট এন্ট্রি: '+bn(state.bill.length)+'</span><span>মোট টাকা: '+bn(total.toLocaleString('en-US'))+'/-</span>';
+    document.getElementById('billSum').innerHTML='<span>মোট এন্ট্রি: '+bn(display.length)+'</span><span>মোট টাকা: '+bn(total.toLocaleString('en-US'))+'/-</span>';
     updateBillTitle();
   }
   document.getElementById('billRows').addEventListener('input', function(e){
@@ -431,6 +483,28 @@
   document.getElementById('billRows').addEventListener('click', function(e){
     if(!e.target.closest('[data-del]')) return;
     var tr=e.target.closest('tr'); state.bill=state.bill.filter(function(x){return x.id!==tr.dataset.bid;}); save(); renderBill(); toast('🗑 সারি মুছে ফেলা হয়েছে');
+  });
+
+  /* তহবিল ফিল্টার → ড্রপডাউন change */
+  document.getElementById('billFundFilter').addEventListener('change', function(){
+    billFilter=this.value; renderBill();
+  });
+
+  /* সাবমিট করুন → ফিল্টার্ড এন্ট্রিগুলো সাবমিট-মার্ক */
+  document.getElementById('billSubmitFund').addEventListener('click', function(){
+    if(!billFilter){ toast('আগে তহবিল বেছে নিন'); return; }
+    var pending=state.bill.filter(function(r){return r.toho===billFilter && !r.bsubmit;});
+    if(!pending.length){ toast('এই তহবিলের সব এন্ট্রি ইতিমধ্যে সাবমিট হয়েছে'); return; }
+    pending.forEach(function(r){ r.bsubmit=true; });
+    save(); renderBill();
+    toast('✅ '+bn(pending.length)+' টি এন্ট্রি সাবমিট → '+billFilter);
+  });
+
+  /* ডিসর্ট → ফিল্টার রিসেট */
+  document.getElementById('billDesort').addEventListener('click', function(){
+    billFilter='';
+    var sel=document.getElementById('billFundFilter'); if(sel) sel.value='';
+    renderBill(); toast('↺ সব তহবিল দেখানো হচ্ছে');
   });
 
   document.getElementById('addV').addEventListener('click', function(){ syncAll(); state.vouchers.push(blankV()); save(); renderVouchers(); showTab(2); toast('➕ নতুন ভাউচার যোগ হয়েছে'); });

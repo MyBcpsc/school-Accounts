@@ -127,7 +127,7 @@
   .rtable thead th{background:#eef3ef;font-weight:600;line-height:1.25;}
   .rtable .grp{background:#e4ece6;font-weight:700;}
   .rtable .colno td{font-size:.76rem;color:#556;background:#fafbfa;}
-  .rtable td.d{text-align:right;min-width:140px;}
+  .rtable td.d{text-align:left;min-width:140px;}
   .rtable td.m{text-align:right;font-variant-numeric:tabular-nums;min-width:64px;}
   .rtable td.c{background:#f2f9f5;text-align:right;font-variant-numeric:tabular-nums;}
   .rtable td[contenteditable]:focus{outline:2px solid #1e5c4f;outline-offset:-2px;background:#fffdf3;}
@@ -164,7 +164,7 @@
     <h3>২ · ভাউচার তৈরি</h3>
     <div class="body">
       <div class="modes">
-        <span class="muted">তৈরির ধরন:</span>
+        <span class="muted">আপলোড রেডি</span>
         <label><input type="radio" name="mode" value="one" checked> একটা একটা করে</label>
         <label><input type="radio" name="mode" value="all"> সবগুলো একসাথে</label>
       </div>
@@ -188,6 +188,7 @@
       <div id="billFBar">
         <b>তহবিল ফিল্টার:</b>
         <select id="billFundFilter"><option value="">সব তহবিল</option></select>
+        <button id="billSubmitAll" class="btn btn-p" style="font-size:.82rem;padding:5px 14px;">✅ এক সাথে সাবমিট করুন</button>
         <div id="billFilterActions" style="display:none;">
           <button id="billSubmitFund" class="btn btn-p" style="font-size:.82rem;padding:5px 14px;">✅ সাবমিট করুন</button>
           <button id="billDesort" class="btn btn-o" style="font-size:.82rem;padding:5px 14px;">↺ ডিসর্ট</button>
@@ -242,8 +243,8 @@
   var MONTHS=['','জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
 
   /* ====== ⚙️ কনফিগ — এই দুই কোটেশনের ভিতরে Supabase-এর তথ্য বসান (খালি রাখলে শুধু এই ব্রাউজারে সেভ হবে) ====== */
-  var SUPABASE_URL = "https://nrenfzzxckpdgpnoyeel.supabase.co/rest/v1/";        // ← এখানে Project URL বসান, যেমন: https://abcd1234.supabase.co
-  var SUPABASE_ANON_KEY = "sb_publishable_KwFyVE3gh9v43wyQG-gIfg_2jgE2xiw";   // ← এখানে anon public key বসান
+  var SUPABASE_URL = "";        // ← এখানে Project URL বসান, যেমন: https://abcd1234.supabase.co
+  var SUPABASE_ANON_KEY = "";   // ← এখানে anon public key বসান
   /* ================================================================================================ */
 
   var LS='bcpsc-voucher-app';
@@ -325,7 +326,7 @@
   function addVoucherFromRow(r){
     var v=blankV();
     v.fund=r.fund||''; if(r.cheque) v.cheque=String(r.cheque); v.date=r.date||''; v.payee=r.payee||''; v.taka=r.taka||''; v.words=r.words||'';
-    v.babod=r.babod||''; v.demand=(r.demandNo||'')+' / '+(r.fund||'')+' / '+(r.khat||''); v.ddate=r.demandDate||''; v.page=r.page||'';
+    v.babod=r.babod||''; v.demand=(r.demandNo||'')+' / '+(r.khat||''); v.ddate=r.demandDate||''; v.page=r.page||'';
     state.vouchers.push(v);
   }
   document.getElementById('aiRead').addEventListener('click', function(){
@@ -530,6 +531,23 @@
     renderBill(); toast('↺ সব তহবিল দেখানো হচ্ছে');
   });
 
+  /* এক সাথে সাবমিট করুন — সব তহবিলের সব এন্ট্রি একসাথে */
+  document.getElementById('billSubmitAll').addEventListener('click', function(){
+    var pending=state.bill.filter(function(r){return !r.bsubmit;});
+    if(!pending.length){ toast('সব এন্ট্রি ইতিমধ্যে সাবমিট হয়েছে'); return; }
+    pending.forEach(function(r){
+      r.bsubmit=true;
+      if(!state.committed.filter(function(c){return c.id===r.id;}).length){
+        var cp={}; for(var k in r) cp[k]=r[k]; state.committed.push(cp);
+      } else {
+        var ex=state.committed.filter(function(c){return c.id===r.id;})[0];
+        if(ex){ for(var k in r) ex[k]=r[k]; }
+      }
+    });
+    save(); renderBill(); if(document.getElementById('p4').classList.contains('on')) renderRegisters();
+    toast('✅ '+bn(pending.length)+' টি এন্ট্রি সকল তহবিলে সাবমিট হয়েছে');
+  });
+
   document.getElementById('addV').addEventListener('click', function(){
     if(!state.images.length){ toast('⚠ প্রথমে ট্যাব ১-এ ইমেজ আপলোড করুন'); return; }
     syncAll(); state.vouchers.push(blankV()); save(); renderVouchers(); showTab(2); toast('➕ নতুন ভাউচার যোগ হয়েছে');
@@ -577,8 +595,8 @@
   document.getElementById('clearPending').addEventListener('click', function(){ state.pending=[]; save(); renderPending(); toast('AI-পড়া সারি বাতিল'); });
   /* Tab 1 → Tab 2 সাবমিট */
   document.getElementById('t1Submit').addEventListener('click', function(){
-    if(!state.pending.length){ toast('পাঠানোর কিছু নেই'); return; }
-    addAllPending(); showTab(2); toast('✅ সকল সারি ভাউচার ট্যাবে সাবমিট হয়েছে');
+    showTab(2);
+    toast(state.pending.length ? '✅ ভাউচার ট্যাবে এসেছেন — এখানে ভাউচার তৈরি করুন' : '✅ ভাউচার ট্যাবে নেভিগেট হয়েছে');
   });
   document.querySelectorAll('.steps .step').forEach(function(el){ el.addEventListener('click', function(){ showTab(this.getAttribute('data-tab')); }); });
   function billHtmlDoc(){
@@ -644,11 +662,11 @@
     if(n===0){
       rows='<tr><td colspan="12" class="regempty">এই তহবিলে এখনো কোনো এন্ট্রি নেই। বিল রেজিস্টারে এই তহবিলের সারি এলে ব্যয় দিকে আসবে, অথবা ➕ আয় সারি চাপুন।</td></tr>';
     } else {
+      var expSeq=0;
       for(var k=0;k<n;k++){
         var ir=inc[k]||null, er=exp[k]||null;
-        var open=ir?num(ir.open):null, iamt=ir?num(ir.amt):null, eamt=er?num(er.taka):null;
+        var open=ir?num(ir.open):null, iamt=ir?num(ir.amt):null;
         var c5=(open||0)+(iamt||0);
-        var c10=c5-(eamt||0);
         var cls=er?'exp':'';
         rows+='<tr'+(cls?' class="'+cls+'"':'')+'>';
         // আয় দিক (১-৫)
@@ -660,10 +678,11 @@
         // ব্যয় দিক (৬-১১)
         if(er){
           rows+=regCellEd(er.date, 'data-bid="'+er.id+'" data-bf="date"');
-          rows+=regCellEd(er.serial,'data-bid="'+er.id+'" data-bf="serial"');
+          expSeq++;
+          rows+=regCellEd(bn(expSeq),'data-bid="'+er.id+'" data-bf="serial"');
           rows+=regCellEd(er.babod,'data-bid="'+er.id+'" data-bf="babod"','d');
           rows+=regCellEd(er.taka, 'data-bid="'+er.id+'" data-bf="taka"','m');
-          rows+='<td class="c">'+rmoney(c10)+'</td>';
+          rows+='<td class="c"></td>';
           rows+=regCellEd(er.rem||'','data-bid="'+er.id+'" data-bf="rem"');
         } else {
           rows+='<td></td><td></td><td class="d"></td><td class="m"></td><td class="c"></td><td></td>';
@@ -688,7 +707,7 @@
     +'<tr><th>তারিখ</th><th>প্রারম্ভিক ব্যালেন্স</th><th>আয়ের বিবরণ</th><th>টাকার পরিমাণ</th><th>ব্যালেন্সসহ মোট (২+৪)</th><th>তারিখ</th><th>ভাউচার নং</th><th>খরচের বিবরণ</th><th>টাকার পরিমাণ</th><th>সমাপনী ব্যালেন্স (৫−৯)</th><th>মন্তব্য</th><th class="act">—</th></tr>'
     +'<tr class="colno"><td>১</td><td>২</td><td>৩</td><td>৪</td><td>৫</td><td>৬</td><td>৭</td><td>৮</td><td>৯</td><td>১০</td><td>১১</td><td class="act"></td></tr>'
     +'</thead><tbody id="regRows">'+rows+'</tbody>'
-    +'<tfoot><tr class="totr"><td colspan="3" style="text-align:right">মোট =</td><td class="m">'+rmoney(tIncome)+'</td><td></td><td colspan="3" style="text-align:right">সর্বমোট =</td><td class="m">'+rmoney(tExp)+'</td><td></td><td></td><td class="act"></td></tr></tfoot>'
+    +'<tfoot><tr class="totr"><td colspan="3" style="text-align:right">মোট =</td><td class="m">'+rmoney(tIncome)+'</td><td></td><td colspan="3" style="text-align:right">সর্বমোট =</td><td class="m">'+rmoney(tExp)+'</td><td class="c">'+rmoney(tIncome-tExp)+'</td><td></td><td class="act"></td></tr></tfoot>'
     +'</table>'
     +'<div class="rboxes">'
     +'<div class="rbox"><div class="cap">অডিট কমিটির যাচাই এবং নির্ভুল প্রাপ্তি</div><table>'
@@ -712,7 +731,7 @@
   }
 
   function regRecalcRow(tr){ if(!tr||!tr.cells||tr.cells.length<11) return; var c=tr.cells; var open=num(c[1].textContent)||0, iamt=num(c[3].textContent)||0, eamt=num(c[8].textContent)||0; var has5=(c[0].textContent||c[1].textContent||c[2].textContent||c[3].textContent); c[4].textContent=has5?rmoney(open+iamt):''; if(c[9].classList.contains('c')){ var isExp=tr.classList.contains('exp'); c[9].textContent=isExp?rmoney((open+iamt)-eamt):''; } }
-  function regRecalcTot(){ var e=regEntry(regFund); var ti=0,te=0; (e.income||[]).forEach(function(r){ ti+=num(r.amt)||0; }); fundCommitted(regFund).forEach(function(r){ te+=num(r.taka)||0; }); var tf=document.querySelector('#regBody .totr'); if(tf){ tf.cells[1].textContent=rmoney(ti); tf.cells[4].textContent=rmoney(te); } }
+  function regRecalcTot(){ var e=regEntry(regFund); var ti=0,te=0; (e.income||[]).forEach(function(r){ ti+=num(r.amt)||0; }); fundCommitted(regFund).forEach(function(r){ te+=num(r.taka)||0; }); var tf=document.querySelector('#regBody .totr'); if(tf){ tf.cells[1].textContent=rmoney(ti); tf.cells[4].textContent=rmoney(te); var cb=document.getElementById('regClosingBal'); if(cb) cb.textContent=rmoney(ti-te); } }
 
   document.getElementById('p4').addEventListener('input', function(e){
     var t=e.target; if(!t.getAttribute || t.getAttribute('contenteditable')!=='true') return;

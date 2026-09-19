@@ -60,6 +60,31 @@
   td[contenteditable]:focus{background:#eaf1ff; outline:none;}
   td.act{text-align:center;} .delrow{background:#fff; color:#b23b3b; border:1px solid #e6c6c6; border-radius:6px; cursor:pointer; padding:2px 8px;}
   .ttl{text-align:center; margin-bottom:8px;} .ttl h1{font-size:1.1rem; font-weight:700; margin:0;} .ttl h2{font-size:.95rem; font-weight:600; margin:2px 0 0;}
+
+  /* ===== সাধারণ তহবিল (ব্যয়) ক্যাশ বুক ===== */
+  .gentbl-wrap{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch;}
+  .gentbl{border-collapse:collapse;font-size:.68rem;white-space:nowrap;}
+  .gentbl th,.gentbl td{border:1px solid #888;padding:2px 4px;text-align:center;vertical-align:middle;}
+  .gentbl .gcdate{min-width:56px;} .gentbl .gcvno{min-width:44px;}
+  .gentbl .gcdesc{text-align:left;min-width:160px;max-width:200px;white-space:normal;vertical-align:top;}
+  .gentbl .gcnum{min-width:60px;}
+  .gentbl thead tr.grp th{background:#1e5c4f;color:#fff;font-size:.78rem;font-weight:700;padding:5px 6px;}
+  .gentbl thead tr.gcrot th{background:#e8f5ef;font-size:.62rem;padding:4px 2px;vertical-align:bottom;}
+  .gentbl thead tr.gcrot th span{display:inline-block;writing-mode:vertical-lr;transform:rotate(180deg);min-height:80px;}
+  .gentbl .colno td{background:#f4f7f5;font-size:.62rem;color:#555;}
+  .gentbl .totr td{background:#e8f5ef;font-weight:700;}
+  .gensum{margin-top:16px;display:flex;gap:16px;flex-wrap:wrap;}
+  .gensum .gsbox{border:1px solid #ccc;border-radius:6px;padding:12px;min-width:270px;}
+  .gensum .gscap{font-weight:700;font-size:.9rem;color:#1e5c4f;margin-bottom:8px;border-bottom:1px solid #e0e8e3;padding-bottom:4px;}
+  .gensum table td{padding:3px 8px;font-size:.85rem;}
+  .gensum table td.gsl{font-weight:600;}
+  .gensum table td.gsv{text-align:right;min-width:90px;}
+  .subtab.gsadh{border-top:2px solid var(--line);margin-top:6px;padding-top:6px;}
+  @media print{
+    .gentbl thead tr.gcrot th span{writing-mode:horizontal-tb;transform:none;min-height:auto;}
+    .gentbl{font-size:.6rem;}
+    .gensum{page-break-inside:avoid;}
+  }
   .empty td{text-align:center; color:#999; padding:14px;}
   tr.b-sub td{background:#e5f5ec; color:#1a5c3e;}
   tr.b-sub td[contenteditable]:focus{background:#d2eedd; outline:none;}
@@ -243,8 +268,8 @@
   var MONTHS=['','জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
 
   /* ====== ⚙️ কনফিগ — এই দুই কোটেশনের ভিতরে Supabase-এর তথ্য বসান (খালি রাখলে শুধু এই ব্রাউজারে সেভ হবে) ====== */
-  var SUPABASE_URL = "https://nrenfzzxckpdgpnoyeel.supabase.co/rest/v1/";        // ← এখানে Project URL বসান, যেমন: https://abcd1234.supabase.co
-  var SUPABASE_ANON_KEY = "sb_publishable_KwFyVE3gh9v43wyQG-gIfg_2jgE2xiw";   // ← এখানে anon public key বসান
+  var SUPABASE_URL = "";        // ← এখানে Project URL বসান, যেমন: https://abcd1234.supabase.co
+  var SUPABASE_ANON_KEY = "";   // ← এখানে anon public key বসান
   /* ================================================================================================ */
 
   var LS='bcpsc-voucher-app';
@@ -254,6 +279,12 @@
   function normalize(){ if(!state||typeof state!=='object') state={}; if(!Array.isArray(state.vouchers)) state.vouchers=[]; if(!Array.isArray(state.bill)) state.bill=[]; if(!Array.isArray(state.images)) state.images=[]; if(!Array.isArray(state.pending)) state.pending=[]; if(!state.reg||typeof state.reg!=='object') state.reg={};
     /* Tab 4 committed store — migrate existing bsubmit entries on first load */
     if(!Array.isArray(state.committed)){ state.committed=[]; (state.bill||[]).filter(function(r){return r.bsubmit;}).forEach(function(r){ var cp={}; for(var k in r) cp[k]=r[k]; state.committed.push(cp); }); }
+    /* সাধারণ তহবিল (ব্যয়) */
+    if(!state.genFund||typeof state.genFund!=='object') state.genFund={};
+    if(!Array.isArray(state.genFund.rows)) state.genFund.rows=[];
+    if(!state.genFund.summary||typeof state.genFund.summary!=='object') state.genFund.summary={};
+    if(!state.genFund.audit||typeof state.genFund.audit!=='object') state.genFund.audit={};
+    if(state.genFund.month==null) state.genFund.month='';
   }
   var saveT;
   function setStatus(html){ var hb=document.querySelector('.hintbar'); if(hb) hb.innerHTML=html; }
@@ -629,6 +660,34 @@
     {name:'বিএনসিসি তহবিল',      keys:['বিএনসিসি','এনসিসি','bncc','ncc']},
     {name:'বৃত্তি তহবিল',         keys:['বৃত্তি','উপবৃত্তি','scholar','stipend']}
   ];
+
+  /* ===== সাধারণ তহবিল (ব্যয়) — কলাম সংজ্ঞা ===== */
+  var GEN_COLS=[
+    {key:'salary', label:'শিক্ষক ও অন্যান্য কর্মচারীদের বেতন', main:true},
+    {key:'pf',         label:'প্রভিডেন্ট ফান্ড'},
+    {key:'stationery', label:'অফিস স্টেশনারি'},
+    {key:'telecom',    label:'টেলিফোন টেলিগ্রাফ ডাক খরচ'},
+    {key:'ad',         label:'বিজ্ঞাপন'},
+    {key:'lab',        label:'ল্যাবরেটরি/গার্ডেনিং'},
+    {key:'edu',        label:'শিক্ষা উপকরণ'},
+    {key:'tada',       label:'টিএডিএ'},
+    {key:'course',     label:'কর্স পরিশোধ'},
+    {key:'diary',      label:'খাতা-ডায়েরি, রশিদ বই ও অন্যান্য'},
+    {key:'tiffin',     label:'টিফিন/আপ্যায়ন'},
+    {key:'misc',       label:'বিবিধ/ভর্তি ব্যয়'},
+    {key:'board',      label:'বোর্ড ফি'},
+    {key:'reg',        label:'রেজিঃ ফি/কেন্দ্র ফি'},
+    {key:'transfer',   label:'স্থানান্তর পরিবার নিরাপত্তা/ইউনিফর্ম'},
+    {key:'calendar',   label:'ক্যালেন্ডার/উৎসাহপ্রদ ভাতা'},
+    {key:'welfare',    label:'কল্যাণ'},
+    {key:'electricity',label:'বিদ্যুৎ বিল'},
+    {key:'rent',       label:'বাসা ভাড়া'},
+    {key:'pension',    label:'অবসর ভাতা'},
+    {key:'model',      label:'মডেল টেস্ট'},
+    {key:'gratuity',   label:'গ্র্যাজুইটি ফান্ডের প্রাপ্য টাকা'}
+  ];
+  var sADH_COLS=GEN_COLS.slice(1); /* সাধারণ অন্যান্য ব্যয় — ২১টি */
+
   var regFund=0; // 0..10 = তহবিল, -1 = মেলেনি
   function rnorm(s){ return String(s==null?'':s).replace(/[\s‌‍্]/g,'').replace(/তহবিলের|তহবিল|ফান্ড|fund/gi,'').toLowerCase(); }
   function matchIdx(toho){ var rt=rnorm(toho); if(!rt) return -1; for(var i=0;i<FUNDS.length;i++){ var ks=FUNDS[i].keys; for(var j=0;j<ks.length;j++){ var k=rnorm(ks[j]); if(k && rt.indexOf(k)>=0) return i; } } return -1; }
@@ -646,6 +705,7 @@
     FUNDS.forEach(function(f,i){ var c=fundCommitted(i).length; h+='<span class="subtab'+(regFund===i?' on':'')+'" data-subtab="'+i+'">'+esc(f.name)+' <span class="cnt">('+bn(c)+')</span></span>'; });
     var mc=fundCommitted(-1).length;
     if(mc>0 || regFund===-1){ h+='<span class="subtab miss'+(regFund===-1?' on':'')+'" data-subtab="-1">অন্যান্য / মেলেনি <span class="cnt">('+bn(mc)+')</span></span>'; }
+    h+='<span class="subtab gsadh'+(regFund===-2?' on':'')+'" data-subtab="-2">সাধারণ তহবিল (ব্যয়)</span>';
     s.innerHTML=h;
   }
 
@@ -653,6 +713,7 @@
 
   function renderRegisters(){
     renderSubtabs();
+    if(regFund===-2){ renderGenFund(); return; }
     var body=document.getElementById('regBody'); if(!body) return;
     var i=regFund, e=regEntry(i), exp=fundCommitted(i), inc=e.income||[];
     var fundName=(i<0?'অন্যান্য / মেলেনি':FUNDS[i].name);
@@ -731,10 +792,97 @@
   }
 
   function regRecalcRow(tr){ if(!tr||!tr.cells||tr.cells.length<11) return; var c=tr.cells; var open=num(c[1].textContent)||0, iamt=num(c[3].textContent)||0, eamt=num(c[8].textContent)||0; var has5=(c[0].textContent||c[1].textContent||c[2].textContent||c[3].textContent); c[4].textContent=has5?rmoney(open+iamt):''; if(c[9].classList.contains('c')){ var isExp=tr.classList.contains('exp'); c[9].textContent=isExp?rmoney((open+iamt)-eamt):''; } }
+
+  /* ===== renderGenFund — সাধারণ তহবিল (ব্যয়) ক্যাশ বুক ===== */
+  function renderGenFund(){
+    var body=document.getElementById('regBody'); if(!body) return;
+    var gf=state.genFund;
+    var rows=gf.rows||[];
+    var sm=gf.summary||{};
+    var au=gf.audit||{};
+    /* thead */
+    var thSub=''; sADH_COLS.forEach(function(cc){ thSub+='<th><span>'+esc(cc.label)+'</span></th>'; });
+    var cnos='<td class="gcdate">১</td><td class="gcvno">২</td><td class="gcdesc">৩</td><td class="gcnum">৪</td>';
+    sADH_COLS.forEach(function(cc,i){ cnos+='<td class="gcnum">'+bn(i+5)+'</td>'; });
+    cnos+='<td class="gcnum">'+bn(GEN_COLS.length+4)+'</td><td class="act"></td>';
+    /* body rows */
+    var rowsHTML='';
+    if(!rows.length){
+      rowsHTML='<tr><td colspan="'+(GEN_COLS.length+5)+'" class="regempty">কোনো এন্ট্রি নেই। ➕ সারি যোগ বাটনে চাপুন।</td></tr>';
+    } else {
+      rows.forEach(function(r,idx){
+        var cells='';
+        GEN_COLS.forEach(function(cc){
+          cells+='<td class="gcnum" contenteditable="true" spellcheck="false" data-gkey="'+cc.key+'" data-gri="'+idx+'">'+esc(r[cc.key]||'')+'</td>';
+        });
+        var tot=0; GEN_COLS.forEach(function(cc){ tot+=num(r[cc.key])||0; });
+        rowsHTML+='<tr>'
+          +'<td class="gcdate" contenteditable="true" spellcheck="false" data-gkey="date" data-gri="'+idx+'">'+esc(r.date||'')+'</td>'
+          +'<td class="gcvno" contenteditable="true" spellcheck="false" data-gkey="vno" data-gri="'+idx+'">'+esc(r.vno||'')+'</td>'
+          +'<td class="gcdesc" contenteditable="true" spellcheck="false" data-gkey="desc" data-gri="'+idx+'">'+esc(r.desc||'')+'</td>'
+          +cells
+          +'<td class="gcnum m">'+rmoney(tot||0)+'</td>'
+          +'<td class="act"><span class="rdel" data-gendel="'+idx+'">✕</span></td>'
+          +'</tr>';
+      });
+    }
+    /* totals */
+    var tots={}; var grand=0;
+    GEN_COLS.forEach(function(cc){ tots[cc.key]=0; });
+    rows.forEach(function(r){ GEN_COLS.forEach(function(cc){ var v=num(r[cc.key])||0; tots[cc.key]+=v; grand+=v; }); });
+    var totCells=''; GEN_COLS.forEach(function(cc){ totCells+='<td class="m">'+rmoney(tots[cc.key])+'</td>'; });
+    /* build html */
+    var html='<div class="regsheet" id="genSheet">'
+      +'<div class="rhead"><div class="rh1">বগুড়া ক্যান্টনমেন্ট পাবলিক স্কুল ও কলেজ</div><div>ক্যাশ বুক (সাধারণ তহবিল)</div></div>'
+      +'<div class="rmeta"><div>মাসের নাম ঃ <span contenteditable="true" spellcheck="false" data-gmonth="1">'+esc(gf.month||'')+'</span></div></div>'
+      +'<div class="row-actions" style="margin-bottom:8px;"><button class="btn btn-p btn-s" data-genaddrow="1">➕ সারি যোগ</button></div>'
+      +'<div class="gentbl-wrap"><table class="gentbl"><thead>'
+      +'<tr class="grp">'
+        +'<th rowspan="3">তারিখ</th>'
+        +'<th rowspan="3">ভাউচার নং</th>'
+        +'<th rowspan="3" class="gcdesc">খরচের বিবরণ</th>'
+        +'<th rowspan="3" class="gcnum">শিক্ষক ও অন্যান্য কর্মচারীদের বেতন</th>'
+        +'<th colspan="'+sADH_COLS.length+'" style="background:#155a45;">সাধারণ অন্যান্য ব্যয়</th>'
+        +'<th rowspan="3" class="gcnum">সর্বমোট</th>'
+        +'<th rowspan="3" class="act">—</th>'
+      +'</tr>'
+      +'<tr class="gcrot">'+thSub+'</tr>'
+      +'<tr class="colno">'+cnos+'</tr>'
+      +'</thead><tbody>'+rowsHTML+'</tbody>'
+      +'<tfoot><tr class="totr"><td colspan="3" style="text-align:right">সর্বমোট =</td>'
+      +totCells
+      +'<td class="m">'+rmoney(grand)+'</td><td class="act"></td></tr></tfoot>'
+      +'</table></div>'
+      /* summary section */
+      +'<div class="gensum">'
+      +'<div class="gsbox"><div class="gscap">হিসাবের শেষ বিবরণ</div><table>'
+      +'<tr><td class="gsl">রিজার্ভ তহবিল (এফডিআর সহ) নং</td><td contenteditable="true" data-gsum="reserveNo" style="min-width:60px">'+esc(sm.reserveNo||'')+'</td><td>টাকা =</td><td class="gsv" contenteditable="true" data-gsum="reserve">'+esc(sm.reserve||'')+'</td></tr>'
+      +'<tr><td class="gsl">সংরক্ষিত তহবিল</td><td></td><td>টাকা =</td><td class="gsv" contenteditable="true" data-gsum="saved">'+esc(sm.saved||'')+'</td></tr>'
+      +'<tr><td class="gsl">হিসাব নং 0320000124</td><td></td><td>টাকা =</td><td class="gsv" contenteditable="true" data-gsum="bank">'+esc(sm.bank||'')+'</td></tr>'
+      +'<tr><td class="gsl">এবং নগদ তহবিল</td><td></td><td>টাকা =</td><td class="gsv" contenteditable="true" data-gsum="cash">'+esc(sm.cash||'')+'</td></tr>'
+      +'<tr><td colspan="2" style="text-align:right;font-weight:700">সর্বমোট টাকা =</td><td colspan="2" class="gsv" contenteditable="true" data-gsum="total">'+esc(sm.total||'')+'</td></tr>'
+      +'<tr><td colspan="4" style="color:#555;font-size:.8rem">হিসাবের শেষে ব্যালেন্স</td></tr>'
+      +'</table></div>'
+      +'<div class="gsbox"><div class="gscap">স্বাক্ষর ও মন্তব্য</div>'
+      +'<table><tr><td class="gsl">মন্তব্য</td><td contenteditable="true" data-gaud="note" style="min-width:160px">'+esc(au.note||'')+'</td></tr></table>'
+      +'<div class="rsign" style="margin-top:30px;"><div><div class="ln">অধ্যক্ষ</div></div><div><div class="ln">হিসাবরক্ষণ কর্মকর্তা</div></div></div>'
+      +'</div>'
+      +'</div></div>'; /* gensum + regsheet */
+    body.innerHTML=html;
+  }
+
   function regRecalcTot(){ var e=regEntry(regFund); var ti=0,te=0; (e.income||[]).forEach(function(r){ ti+=num(r.amt)||0; }); fundCommitted(regFund).forEach(function(r){ te+=num(r.taka)||0; }); var tf=document.querySelector('#regBody .totr'); if(tf){ tf.cells[1].textContent=rmoney(ti); tf.cells[4].textContent=rmoney(te); var cb=document.getElementById('regClosingBal'); if(cb) cb.textContent=rmoney(ti-te); } }
 
   document.getElementById('p4').addEventListener('input', function(e){
     var t=e.target; if(!t.getAttribute || t.getAttribute('contenteditable')!=='true') return;
+    /* সাধারণ তহবিল (ব্যয়) */
+    if(regFund===-2){
+      if(t.dataset.gmonth!=null){ state.genFund.month=t.textContent; }
+      else if(t.dataset.gkey!=null){ var ri2=parseInt(t.dataset.gri,10); if(!isNaN(ri2) && state.genFund.rows[ri2]){ state.genFund.rows[ri2][t.dataset.gkey]=t.textContent; } }
+      else if(t.dataset.gsum!=null){ state.genFund.summary=state.genFund.summary||{}; state.genFund.summary[t.dataset.gsum]=t.textContent; }
+      else if(t.dataset.gaud!=null){ state.genFund.audit=state.genFund.audit||{}; state.genFund.audit[t.dataset.gaud]=t.textContent; }
+      save(); return;
+    }
     var e0=regEntry(regFund);
     if(t.dataset.inc!=null){ var ri=+t.dataset.ri; e0.income[ri]=e0.income[ri]||{}; e0.income[ri][t.dataset.inc]=t.textContent; }
     else if(t.dataset.bid){ var r=state.bill.filter(function(x){return x.id===t.dataset.bid;})[0]; if(r) r[t.dataset.bf]=t.textContent; }
@@ -748,8 +896,12 @@
     var st=e.target.closest('[data-subtab]'); if(st){ regFund=parseInt(st.dataset.subtab,10); renderRegisters(); return; }
     var di=e.target.closest('[data-delinc]'); if(di){ var e0=regEntry(regFund); e0.income.splice(+di.dataset.delinc,1); save(); renderRegisters(); toast('🗑 আয় সারি মুছে ফেলা হয়েছে'); return; }
     var db=e.target.closest('[data-delbill]'); if(db){ state.committed=state.committed.filter(function(x){return x.id!==db.dataset.delbill;}); save(); renderRegisters(); toast('🗑 ব্যয় সারি রেজিস্টার থেকে মুছে ফেলা হয়েছে (বিল রেজিস্টারে আছে)'); return; }
+    /* সাধারণ তহবিল — সারি মুছুন */
+    var gd=e.target.closest('[data-gendel]'); if(gd){ state.genFund.rows.splice(parseInt(gd.dataset.gendel,10),1); save(); renderGenFund(); toast('🗑 সারি মুছে ফেলা হয়েছে'); return; }
+    /* সাধারণ তহবিল — সারি যোগ */
+    var ga=e.target.closest('[data-genaddrow]'); if(ga){ var nr={date:'',vno:'',desc:''}; GEN_COLS.forEach(function(cc){ nr[cc.key]=''; }); state.genFund.rows.push(nr); save(); renderGenFund(); return; }
   });
-  document.getElementById('regAddInc').addEventListener('click', function(){ regEntry(regFund).income.push({}); save(); renderRegisters(); });
+  document.getElementById('regAddInc').addEventListener('click', function(){ if(regFund===-2) return; regEntry(regFund).income.push({}); save(); renderRegisters(); });
   document.getElementById('regSave').addEventListener('click', function(){ save(); toast('💾 সেভ হয়েছে'); });
   document.getElementById('regPrint').addEventListener('click', function(){ window.print(); });
   function regDownloadDoc(){

@@ -80,6 +80,7 @@
   .gensum table td.gsl{font-weight:600;}
   .gensum table td.gsv{text-align:right;min-width:90px;}
   .subtab.gsadh{border-top:2px solid var(--line);margin-top:6px;padding-top:6px;}
+  .fser{color:#1e5c4f;font-weight:700;letter-spacing:.02em;}
   @media print{
     .gentbl thead tr.gcrot th span{writing-mode:horizontal-tb;transform:none;min-height:auto;}
     .gentbl{font-size:.6rem;}
@@ -268,8 +269,8 @@
   var MONTHS=['','জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
 
   /* ====== ⚙️ কনফিগ — এই দুই কোটেশনের ভিতরে Supabase-এর তথ্য বসান (খালি রাখলে শুধু এই ব্রাউজারে সেভ হবে) ====== */
-  var SUPABASE_URL = "https://nrenfzzxckpdgpnoyeel.supabase.co/rest/v1/";        // ← এখানে Project URL বসান, যেমন: https://abcd1234.supabase.co
-  var SUPABASE_ANON_KEY = "sb_publishable_KwFyVE3gh9v43wyQG-gIfg_2jgE2xiw";   // ← এখানে anon public key বসান
+  var SUPABASE_URL = "";        // ← এখানে Project URL বসান, যেমন: https://abcd1234.supabase.co
+  var SUPABASE_ANON_KEY = "";   // ← এখানে anon public key বসান
   /* ================================================================================================ */
 
   var LS='bcpsc-voucher-app';
@@ -392,7 +393,7 @@
   function ce(v,f){ return '<span class="edit" data-f="'+f+'" contenteditable="'+(v.locked?'false':'true')+'" spellcheck="false">'+esc(v[f])+'</span>'; }
   function voucherInner(v){
     return '<div class="head"><img class="logo" src="'+LOGO+'"><div class="titles"><h1>বগুড়া ক্যান্টনমেন্ট পাবলিক স্কুল ও কলেজ</h1><h2>ডেবিট ভাউচার</h2></div></div>'
-     +'<div class="toprow"><div class="vno"><span class="lbl">ভাউচার নং /</span>'+ce(v,'fund')+'</div>'
+     +'<div class="toprow"><div class="vno"><span class="lbl">ভাউচার নং</span>'+(v.fund?'<b class="fser">'+vFundSerial(v)+'</b><span class="lbl">&nbsp;/</span>':'<span class="lbl">&nbsp;/</span>')+ce(v,'fund')+'</div>'
        +'<div class="rb"><div class="line"><span class="lbl">বিল নং</span>'+ce(v,'bill')+'</div>'
          +'<div class="line"><span class="lbl">চেক নং&nbsp; ডি</span>'+ce(v,'cheque')+'</div>'
          +'<div class="line"><span class="lbl">তারিখ</span>'+ce(v,'date')+'</div></div></div>'
@@ -542,16 +543,17 @@
     if(!pending.length){ toast('এই তহবিলের সব এন্ট্রি ইতিমধ্যে সাবমিট হয়েছে'); return; }
     pending.forEach(function(r){
       r.bsubmit=true;
-      /* Tab 4 committed store-এ কপি যোগ (ডুপ্লিকেট এড়ানো) */
+      /* "সাধারণ" তহবিল → genFund রাউট */
+      if((r.toho||'').trim()==='সাধারণ' && routeToGenFund(r)) return;
+      /* Normal: Tab 4 committed store */
       if(!state.committed.filter(function(c){return c.id===r.id;}).length){
         var cp={}; for(var k in r) cp[k]=r[k]; state.committed.push(cp);
       } else {
-        /* আপডেট করুন যদি আগে থেকে থাকে */
         var ex=state.committed.filter(function(c){return c.id===r.id;})[0];
         if(ex){ for(var k in r) ex[k]=r[k]; }
       }
     });
-    save(); renderBill();
+    save(); renderBill(); if(regFund===-2) renderGenFund();
     toast('✅ '+bn(pending.length)+' টি এন্ট্রি সাবমিট → '+billFilter);
   });
 
@@ -568,6 +570,9 @@
     if(!pending.length){ toast('সব এন্ট্রি ইতিমধ্যে সাবমিট হয়েছে'); return; }
     pending.forEach(function(r){
       r.bsubmit=true;
+      /* "সাধারণ" তহবিল → genFund রাউট */
+      if((r.toho||'').trim()==='সাধারণ' && routeToGenFund(r)) return;
+      /* Normal committed routing */
       if(!state.committed.filter(function(c){return c.id===r.id;}).length){
         var cp={}; for(var k in r) cp[k]=r[k]; state.committed.push(cp);
       } else {
@@ -575,7 +580,7 @@
         if(ex){ for(var k in r) ex[k]=r[k]; }
       }
     });
-    save(); renderBill(); if(document.getElementById('p4').classList.contains('on')) renderRegisters();
+    save(); renderBill(); if(document.getElementById('p4').classList.contains('on')){ if(regFund===-2) renderGenFund(); else renderRegisters(); }
     toast('✅ '+bn(pending.length)+' টি এন্ট্রি সকল তহবিলে সাবমিট হয়েছে');
   });
 
@@ -687,6 +692,51 @@
     {key:'gratuity',   label:'গ্র্যাজুইটি ফান্ডের প্রাপ্য টাকা'}
   ];
   var sADH_COLS=GEN_COLS.slice(1); /* সাধারণ অন্যান্য ব্যয় — ২১টি */
+
+
+  /* সাধারণ তহবিল রাউটিং — খাত টেক্সট দিয়ে GEN_COLS কলাম খোঁজে */
+  function matchGenCol(khat){
+    if(!khat) return null;
+    var k=(khat||'').trim();
+    for(var i=0;i<GEN_COLS.length;i++){
+      var cc=GEN_COLS[i];
+      var lbl=cc.label;
+      if(lbl===k) return cc.key;            // exact
+      var pts=lbl.split('/');
+      for(var j=0;j<pts.length;j++){
+        if(pts[j].trim()===k) return cc.key; // "/" দিয়ে ভাগ করা অংশ
+      }
+      if(lbl.indexOf(k)!==-1) return cc.key; // label-এ khat আছে
+      if(k.length>1 && k.indexOf(pts[0].trim())!==-1) return cc.key; // khat-এ label এর প্রথম অংশ
+    }
+    return null;
+  }
+
+  /* ভাউচার নং-এর ফান্ড-নিজস্ব ক্রমিক */
+  function vFundSerial(v){
+    var fn=(v.fund||'').trim(); if(!fn) return '';
+    var cnt=0;
+    for(var i=0;i<state.vouchers.length;i++){
+      var ov=state.vouchers[i];
+      if((ov.fund||'').trim()===fn){ cnt++; if(ov.id===v.id) return bn(cnt); }
+    }
+    return bn(cnt+1);
+  }
+
+  /* "সাধারণ" তহবিল bill entry → genFund.rows রাউট */
+  function routeToGenFund(r){
+    var key=matchGenCol(r.khat); if(!key) return false;
+    var ex=(state.genFund.rows||[]).filter(function(x){return x.billId===r.id;})[0];
+    if(ex){ ex[key]=r.taka; ex.date=r.date; }
+    else{
+      var row={billId:r.id, date:r.date, vno:r.serial||'', desc:r.babod||''};
+      GEN_COLS.forEach(function(cc){ row[cc.key]=''; });
+      row[key]=r.taka;
+      (state.genFund.rows||(state.genFund.rows=[])).push(row);
+      state.genFund.rows.sort(function(a,b){return (a.date||'').localeCompare(b.date||'');});
+    }
+    return true;
+  }
 
   var regFund=0; // 0..10 = তহবিল, -1 = মেলেনি
   function rnorm(s){ return String(s==null?'':s).replace(/[\s‌‍্]/g,'').replace(/তহবিলের|তহবিল|ফান্ড|fund/gi,'').toLowerCase(); }
